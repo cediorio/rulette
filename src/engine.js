@@ -27,13 +27,13 @@ class RuleEngine {
         // we loop through the rules, substituting
         // legal JS boolean operations for "and", "or" and "not"
         this.debug(`running parseRules...`);
-        Object.values(this.rules).forEach( rule => {
-            this.parseRule(rule);
+        Object.entries(this.rules).forEach( item => {
+            this.parseRule(item[0], item[1]);
         });
     }
 
-    parseRule(rule) {
-        if(!rule.hasOwnProperty('name')) {
+    parseRule(name,rule) {
+        if(!name) {
             throw new Error("No name specified for rule");
             return false;
         } else if(!rule.hasOwnProperty('lhs')) {
@@ -46,7 +46,6 @@ class RuleEngine {
         rule.lhs = rule.lhs.replace( / +and +/g, " && ");
         rule.lhs = rule.lhs.replace( / +or +/g, " || ");
         rule.lhs = rule.lhs.replace( / +not +/g, " !");
-        rule.lhs = rule.lhs.replace( /=/g, "==");
         return rule;
     }
 
@@ -62,8 +61,12 @@ class RuleEngine {
             this.evalRule(JSON.parse(JSON.stringify(rule)));
         });
     }
-
-    evalRule(rule){
+    /*
+        evalRule can accept a rule and can also take an optional facts
+        object. If there is no facts object, then the class facts 
+        object will be searched.
+    */
+    evalRule(rule, facts=null){
         this.debug("========================\nrunning evalRule...");
         let result = null;
         let eval_log = []; // a list of the results of evaluation to use in reasons
@@ -71,19 +74,26 @@ class RuleEngine {
         // and evaluate them based on their corresponding fact value
         this.debug(`parsing the rule <${rule.name}> as:
               ${rule.lhs}`);
-        let regex_find_assignments = /(\w+ *= *["'][\w ]*["'])/g;
+        let regex_find_assignments = /(\w+ *(!=|=) *['"]*(\w+|true|false|null)['"]*)/g;
         let assignments = rule.lhs.match(regex_find_assignments);
         if(assignments){
             for(let i of assignments){
-                let regex_parse_assignment = /(\w+) *= *["']([\w ]*)["']/g;
+                let regex_parse_assignment = /(\w+) *(!=|=) *["']*([\w]*["']*)/g;
                 let lexed = regex_parse_assignment.exec(i);
                 if(lexed){
                     let key = lexed[1];
-                    let val = lexed[2];
+                    let val = lexed[3];
+                    // need to convert any js truth values that may 
+                    // have been provided as strings
+                    if (val === 'true') { val = true; }
+                    else if (val === 'false') { val = false; }
+                    else if (val.contains('none', 'None','null', 'Null')) { val = null; }
+
                     // evaluate the rule's required value against the
                     // fact value
-                    let value = val === this.facts[key].value ? true : false;
-
+                    // let value = val === this.facts[key].value ? true : false; 
+                    let fact_value = facts ? facts[key] : this.facts[key].value;
+                    let value = val === fact_value ? true : false;
                     // now replace the var from the clause with its
                     // truth value
                     rule.lhs = rule.lhs.replace(i, value);
@@ -112,6 +122,8 @@ class RuleEngine {
 
         this.debug(`New result added after rule eval:
               ${rule.rhs} -> ${this.results[rule.rhs].value}`);
+
+        return rule;
     }
 
     fire(){
