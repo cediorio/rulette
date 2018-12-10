@@ -13,8 +13,8 @@ class RuleEngine {
         this.dev ? console.log(msg) : null;
     }
 
-    eeval() { 
-        expr => Function('"use strict";return (' + expr + ')')()
+    eeval(expr) { 
+        return Function('"use strict";return (' + expr + ')')()
     }
 
     parseFacts(){
@@ -27,8 +27,8 @@ class RuleEngine {
         // we loop through the rules, substituting
         // legal JS boolean operations for "and", "or" and "not"
         this.debug(`running parseRules...`);
-        Object.entries(this.rules).forEach( item => {
-            this.parseRule(item[0], item[1]);
+        Object.entries(this.rules).forEach( ([name, rule]) => {
+            this.parseRule(name, rule);
         });
     }
 
@@ -46,6 +46,8 @@ class RuleEngine {
         rule.lhs = rule.lhs.replace( / +and +/g, " && ");
         rule.lhs = rule.lhs.replace( / +or +/g, " || ");
         rule.lhs = rule.lhs.replace( / +not +/g, " !");
+        // add the name as a property for results processing
+        rule.name = name;
         return rule;
     }
 
@@ -55,7 +57,7 @@ class RuleEngine {
 
     evalRules(){
         this.debug(`running evalRules...`);
-        Object.keys(this.rules).forEach( key => {
+        Object.entries(this.rules).forEach( ([name, rule]) => {
             // use JSON methods to clone a new object, so you
             // don't send a reference to this.rules's member
             this.evalRule(JSON.parse(JSON.stringify(rule)));
@@ -74,11 +76,11 @@ class RuleEngine {
         // and evaluate them based on their corresponding fact value
         this.debug(`parsing the rule <${rule.name}> as:
               ${rule.lhs}`);
-        let regex_find_assignments = /(\w+ *(!=|=) *['"]*(\w+|true|false|null)['"]*)/g;
+        let regex_find_assignments = /(\w+ *(!=|=) *(\w+|['"]*[\w*|\s]*)['"]*)/g; // /(\w+ *(!=|=) *['"]*(\w+|true|false|null)['"]*)/g;
         let assignments = rule.lhs.match(regex_find_assignments);
         if(assignments){
             for(let i of assignments){
-                let regex_parse_assignment = /(\w+) *(!=|=) *["']*([\w]*["']*)/g;
+                let regex_parse_assignment = /(\w+) *(!=|=) *(\w+|['"]*[\w*|\s]*['"]*)/g;
                 let lexed = regex_parse_assignment.exec(i);
                 if(lexed){
                     let key = lexed[1];
@@ -87,13 +89,13 @@ class RuleEngine {
                     // have been provided as strings
                     if (val === 'true') { val = true; }
                     else if (val === 'false') { val = false; }
-                    else if (val.contains('none', 'None','null', 'Null')) { val = null; }
-
+                    else if (val.includes('none', 'None','null', 'Null')) { val = null; }
+                    
                     // evaluate the rule's required value against the
                     // fact value
                     // let value = val === this.facts[key].value ? true : false; 
                     let fact_value = facts ? facts[key] : this.facts[key].value;
-                    let value = val === fact_value ? true : false;
+                    let value = val === fact_value; 
                     // now replace the var from the clause with its
                     // truth value
                     rule.lhs = rule.lhs.replace(i, value);
@@ -108,20 +110,20 @@ class RuleEngine {
         if(unaries){
             for(let i of unaries){
                 if(!stop_words.includes(i)){
-                    let value = this.facts[i].value;
+                    /* let value = this.facts[i].value;
+                    rule.lhs = rule.lhs.replace(i, value); */
+                    let value = facts ? facts[i] : this.facts[i].value;
                     rule.lhs = rule.lhs.replace(i, value);
                 }
             }
         }
 
-        this.results[rule.rhs] = {
-            // old version when it was a utility
-            // var eeval = expr => Function('"use strict";return (' + expr + ')')();
-            'value': this.eeval(rule.lhs)
-        };
+        this.results[rule.name] = this.eeval(rule.lhs);
 
         this.debug(`New result added after rule eval:
-              ${rule.rhs} -> ${this.results[rule.rhs].value}`);
+              rule.name: ${rule.name}
+              rule.lhs: ${rule.lhs}
+              rule.rhs: ${rule.rhs}`);
 
         return rule;
     }

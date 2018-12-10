@@ -21,6 +21,7 @@ describe("imports test", function() {
         })
     }) 
 })
+// the last parameter is for debug printing
 let engine = new RuleEngine(rules, facts, false);
 
 describe("Create a RuleEngine instance with facts and rules", function() {
@@ -99,13 +100,48 @@ describe("Rule parsing", function() {
     })
 })
 
-describe("Evaluate a single rule", function() {
-    it("it should evaluate to true", function() {
-        let facts = {'a': true, 'b': true};
-        let name = "testRule";
-        let rule = {'lhs': "a = true and b = true", 'rhs': true};
-        let ruleParsed = engine.parseRule(name,rule);
-        expect(engine.evalRule(ruleParsed, facts)).to.have.property('lhs', 'true && true');
+describe("Evaluate single rules", function() {
+    let facts = {'a': true, 'b': true, 'c': true, 'd': true, 'e': 'sqwade'};
+    let name = "testRule";
+    let rule = {'lhs': "a = true and b = true", 'rhs': true};
+    let ruleParsed = engine.parseRule(name,rule);    
+    it("true values should evaluate to true (duh)...", function() {
+        expect(engine.evalRule(ruleParsed, facts))
+            .to.have.property('lhs', 'true && true')
+        expect(engine.results)
+            .to.have.property('testRule', true);
+    })
+    it("a false atom should make the rule false", function() {
+        let rule = {'lhs': "a = true and b = false", 'rhs': null};
+        let ruleParsed = engine.parseRule(name,rule); 
+        expect(engine.evalRule(ruleParsed, facts))
+            .to.have.property('lhs', 'true && false'); 
+        expect(engine.results)
+            .to.have.property("testRule", false);
+    })
+    it("a false or a true atom should be true ", function() {
+        let rule = {'lhs': "a = true or b = false", 'rhs': null};
+        let ruleParsed = engine.parseRule(name,rule); 
+        expect(engine.evalRule(ruleParsed, facts))
+            .to.have.property('lhs', 'true || false'); 
+        expect(engine.results)
+            .to.have.property("testRule", true);
+    })
+    it("brackets should work to give precedence ", function() {
+        let rule = {'lhs': "a = false or (b = false and c = true)", 'rhs': null};
+        let ruleParsed = engine.parseRule(name,rule); 
+        expect(engine.evalRule(ruleParsed, facts))
+            .to.have.property('lhs', 'false || (false && true)'); 
+        expect(engine.results)
+            .to.have.property("testRule", false);
+    })
+    it("terse syntax should work", function() {
+        let rule = {'lhs': "!a or (!b and c)", 'rhs': null};
+        let ruleParsed = engine.parseRule(name,rule); 
+        expect(engine.evalRule(ruleParsed, facts))
+            .to.have.property('lhs', '!true || (!true && true)'); 
+        expect(engine.results)
+            .to.have.property("testRule", false);
     })
 })
 
@@ -114,7 +150,9 @@ describe("Once rules are parsed, set the agenda for their firing", function() {
 })
 
 describe("Evaluate rules object", function() {
-    it.skip("evalRules should not throw an exception when invoked", function() {
+    it("evalRules should not throw an exception when invoked", function() {
+        engine.parseRules();
         expect(engine.evalRules.bind(engine)).to.not.throw();
     });
 })
+
