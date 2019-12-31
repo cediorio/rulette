@@ -1,35 +1,46 @@
 {
-  "name": "lamekb",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
-  "scripts": {
-    "test": "./node_modules/.bin/mocha --compilers js:@babel/register",
-    "start": "nodemon --exec babel-node ./src/index.js",
-    "build": "babel src --out-dir ./dist --source-maps",
-    "serve": "node ./dist/index.js",
-    "debug": "node --inspect-brk ./dist/index.js"
-  },
-  "keywords": [],
-
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "@babel/cli": "^7.2.0",
-    "@babel/core": "^7.2.0",
-    "@babel/node": "^7.2.0",
-    "@babel/preset-env": "^7.2.0",
-    "@babel/register": "^7.0.0",
-    "babel-cli": "^6.26.0",
-    "babel-preset-env": "^1.7.0",
-    "chai": "^4.2.0",
-    "mocha": "^5.2.0",
-    "nodemon": "^1.18.7"
-  },
-  "dependencies": {
-    "express": "^4.16.4"
-  }
+			"name": "rulette",
+			"version": "0.1.0",
+			"description": "a simple javascript rule engine",
+			"main": "index.js",
+			"directories": {
+						"test": "test"
+			},
+			"scripts": {
+						"test": "jest",
+						"start": "nodemon --exec babel-node ./src/index.js",
+						"build": "babel src --out-dir ./dist --source-maps",
+						"debug": "nodemon --inspect-brk ./dest/index.js"
+			},
+			"babel": {
+						"presets": [
+									[
+												"@babel/preset-env",
+												{
+															"targets": {
+																		"node": "current"
+															}
+												}
+									]
+						]
+			},
+			"keywords": [],
+			"author": "",
+			"license": "ISC",
+			"devDependencies": {
+						"@babel/cli": "^7.7.7",
+						"@babel/core": "^7.7.7",
+						"@babel/node": "^7.7.7",
+						"@babel/preset-env": "^7.7.7",
+						"axios-mock-adapter": "^1.17.0",
+						"jest": "^24.9.0"
+			},
+			"dependencies": {
+						"axios": "^0.19.0",
+						"babel-jest": "^24.9.0",
+						"immutable": "^4.0.0-rc.12",
+						"jest-cli": "^24.9.0",
+						"nodemon": "^2.0.2",
+						"yarn": "^1.21.1"
+			}
 }

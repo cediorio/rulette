@@ -1,8 +1,15 @@
-import RuleEngine from './engine'
-import facts from '../test/test_data/facts'
-import rules from '../test/test_data/rules'
+import { Immutable } from 'immutable';
+import { fetchData, buildUrl } from './fetchKB';
 
-let engine = new RuleEngine(rules, facts, true);
-engine.debug('something test');
-engine.parseFacts();
+const get_kb = async (kb_to_fetch) => {
+    const kb = await fetchData(kb_to_fetch);
+
+    if (kb) {
+    	kb.forEach( e => {
+    	    console.log(`${JSON.stringify(e)}`);
+    	});
+    }
+}
+
+get_kb(buildUrl('test'));
 
