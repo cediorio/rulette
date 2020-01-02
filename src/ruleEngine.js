@@ -1,47 +1,81 @@
-import vm from "vm-browserify";
-
-var sandbox = vm.createContext({});
-
 /** Define classes for RuleBase **/
-function Fact(fact) {
-  this.id = fact.kb_type + fact.id;
-  this.name = this.parseNames(fact.name).trim();
-  this.value = fact.value;
-  this.validValues = fact.validValues;
-  this.displayQuestion = fact.displayQuestion;
-  this.factDescription = fact.factDescription;
+
+import { Graph, Node } from './graph';
+import jsep from 'jsep';
+
+export class RuleBase {
+
+    static createRuleTree( ast, graph ) {
+	if ( !graph ) throw new Error( "createRuleTree requires a graph object as its second parameter.");
+	this._parseASTNode( ast, graph );
+	return graph;
+    }
+
+    static _parseASTNode( ast, graph ) {
+	const OpError = new Error('operator not recognized');
+
+	switch ( ast.operator ) {
+	case 'then':
+	    
+	    break;
+	case 'and':
+	    break;
+	case 'or':
+	    break;
+	default:
+	    throw OpError;
+	}
+    }
+    
+    static parseRule ( rule ) {
+
+	// add custom operators
+
+	jsep.addUnaryOp('not', 10);
+	jsep.addBinaryOp('and', 10);
+	jsep.addBinaryOp('or', 10);
+	jsep.addBinaryOp('then', 1);
+
+	try {
+	    return jsep(rule);
+	} catch (err) {
+	    throw new Error( `There was an error parsing the rule: ${err}`);
+	}
+    }
 }
 
-Fact.prototype.parseNames = function(name) {
-  // name = name.replace( /(\w)-(\w)/g, "\1_\2" );  // we don't need to do this, just make sure fact and rule names match!
-
-  return name;
-};
-
-function Rule(rule) {
-  this.name = rule.result;
-  this.lhs = this.parseRule(this.parseNames(rule.conditions));
-  this.rhs = rule.result;
-  this.value = null;
-  this.trueDisplayValue = rule.trueDisplayValue;
-  this.falseDisplayValue = rule.falseDisplayValue;
-  this.topic = rule.topic;
-  this.source = rule.source;
-  this.notes = rule.notes;
+export class Fact extends Node {
+    constructor ( args = { name: null, validValues: null, displayQuestion: null, factDescription: null } ) {
+	let { name, validValues, displayQuestion, factDescription } = args;
+	super( {name: name} );
+	this._validValues = validValues;
+	this._displayQuestion = displayQuestion;
+	this._factDescription = factDescription;
+    }
 }
 
-Rule.prototype.parseNames = function(name) {
-  return name;
-};
-
-Rule.prototype.parseRule = function(rule) {
-  if (rule === true) return rule;
-  rule = rule.replace(/\s+and\s+/g, " && ");
-  rule = rule.replace(/\s+or\s+/g, " || ");
-  rule = rule.replace(/\s*not\s+/g, " !");
-
-  return rule;
-};
+export class Rule extends Node {
+    constructor( args = {
+	name: null,
+	lhs: null,
+	rhs: null,
+	trueDisplayValue: null,
+	falseDisplayValue: null,
+	topic: null,
+	source: null,
+	notes: null
+    } ) {
+	let { name, lhs, rhs, trueDisplayValue, falseDisplayValue, topic, source, notes } = args;
+	super( { name: name } );
+	this._lhs = lhs;
+	this._rhs = rhs;
+	this._trueDisplayValue = trueDisplayValue;
+	this._falseDisplayValue = falseDisplayValue;
+	this._topic = topic;
+	this._source = source;
+	this._notes = notes;
+    }
+}
 
 function createKB(facts_range = [], rules_range = []) {
   /* takes a fact object and rules object

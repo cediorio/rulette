@@ -10,7 +10,8 @@
 						"test": "jest",
 						"start": "nodemon --exec babel-node ./src/index.js",
 						"build": "babel src --out-dir ./dist --source-maps",
-						"debug": "nodemon --inspect-brk ./dest/index.js"
+						"debug": "nodemon --inspect-brk ./dest/index.js",
+						"debug-tests": "node --inspect-brk node_modules/.bin/jest --runInBand"
 			},
 			"babel": {
 						"presets": [
@@ -40,6 +41,7 @@
 						"babel-jest": "^24.9.0",
 						"immutable": "^4.0.0-rc.12",
 						"jest-cli": "^24.9.0",
+						"jsep": "^0.3.4",
 						"nodemon": "^2.0.2",
 						"yarn": "^1.21.1"
 			}
