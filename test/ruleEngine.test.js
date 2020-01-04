@@ -145,7 +145,6 @@ describe.skip( "RuleBase.findGoalNodes and evalGoalnodes", () => {
 	for ( let i of ['a', 'b', 'c'] ) 
 	    updatedGraph.getNodeByName(i).value = true;
 
-	debugger;
 	expect( updatedGraph.evalGoalNodes( goalNodes )).toEqual();
 	
 	console.log( updatedGraph.nodes );

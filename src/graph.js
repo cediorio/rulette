@@ -153,16 +153,20 @@ export class Graph {
     }
 
     _evalRTUtil(c, missingValuesStack) {
+	/* Will return: (1) on success: the node that was successfully
+	 * evaluated; (2) on failure, an array containing the nodes
+	 * which are missing truth values. 
+	 */
 	
 	if (typeof c === 'undefined') throw new Error( 'You must supply a root node to begin the backtracking search.' );
 	if( this._reject(c) )
 	    return {
-		truthiness: false,
+		result: 'success',
 		node: this.getNodeByName(c)
 	    };
 	if ( this._accept(c, missingValuesStack) )
 	    return {
-		truthiness: true,
+		result: 'success',
 		node: this.getNodeByName(c)
 	    };
 
@@ -172,10 +176,7 @@ export class Graph {
 	    this._evalRTUtil(s, missingValuesStack);
 	}
 	
-	return {
-	    truthiness: null,
-	    missing: missingValuesStack
-	};
+	return missingValuesStack;
     }
 
     _reject(c) {
@@ -199,7 +200,7 @@ export class Graph {
 	const value = node.value;
 			
 	// return the node itself if it is already true
-	if ( node.value ) return true;
+	if ( value ) return true;
 
 	// different tests for different operators, obviously
 
@@ -241,7 +242,7 @@ export class Graph {
 	// it was an RHS), add it to the missingValuesStack
 	
 	// if ( operator === 'prop' && node.value === null )
-	//     missingValuesStack.push( node.name );
+	missingValuesStack.push( node.name );
 	
 	return false;
     }

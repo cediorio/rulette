@@ -113,21 +113,29 @@ describe( "Find goal nodes", () => {
     });
 });
 
-describe( "evalRuleTree (backtracking algorithm) - simple not eval with operand set to false", () => {
+describe( "evalRuleTree (backtracking algorithm) - simple not eval", () => {
     const graph = new Graph();
-    graph.createNode( { name: 'a', value: false } );
+    graph.createNode( { name: 'a' } );
     graph.createNode( { name: 'not', nodeType: 'not' } );
     graph.addEdge( 'not', 'a' );
-    debugger;
-    it( "should eval to true", () => {
-	expect( graph.evalGoalNodes( 'not' ) ).toHaveProperty( 'truthiness', true );
-    });
 
-    describe( "change value of 'not' operand to false", () => {
-	graph.getNodeByName('a').value = true;
-
+    describe( "change value of 'not' operand to true", () => {
 	it( "should eval to false", () => {
-	    expect( graph.evalRuleTree( 'not' ) ).toHaveProperty( 'truthiness', false );
+	    graph.getNodeByName('a').value = true;
+	    const result = graph.evalGoalNodes( ['not'] );
+	    expect( result.not ).toHaveProperty( 'result', 'success' );
+	    expect( result.not.node ).toHaveProperty( '_value', false );
+	});
+    });
+    
+    describe( "change value of 'not' operand to false", () => {
+	it( "should eval to false", () => {
+	    graph.getNodeByName('not').value = null; // have to reset value, since we're using the same graph object!!
+	    graph.getNodeByName('a').value = false;
+	    const result = graph.evalGoalNodes( ['not'] );
+	    debugger;
+	    expect( result.not ).toHaveProperty( 'result', 'success' );
+	    expect( result.not.node ).toHaveProperty( '_value', true );
 	});
     });
 });
