@@ -1,8 +1,8 @@
 /* Nodes are of type 'op'{erator} or 'prop'{osition}
  */
 export class Graph {
-    constructor(args = {name: ''}) {
-	this._name = args.name;
+    constructor( {name = ''} = {}) {
+	this._name = name;
 	this._adjList = {};
 	this._nodes = [];
     }
@@ -199,9 +199,17 @@ export class Graph {
 	const rootOperator = rootNode.nodeType;
 	
 	let node = rootNode;
-
+	// create a truth value setter that will set both the root and
+	// node to the applicable truth value (we have both in case we
+	// are dealing with an RHS, in which case node is the child of
+	// the root, and both need to be set
+	const setTruthValue = ( val ) => {
+	    node.value = val;
+	    rootNode.value = val;
+	};
+	
 	// return the node itself if it is already true
-	if ( rootNode.value ) return rootNode;
+	if ( rootNode.value ) return true;
 
 	// if the node is an RHS, sub in its child, since the child
 	// will be the actual test that matters
@@ -209,8 +217,10 @@ export class Graph {
 	    const childNode = this.getNodeByName( rootChildren[0] );
 	    node = childNode;
 	    
-	    if ( node.value === true ) 
-		return node;
+	    if ( node.value === true ) {
+		rootNode.value = true;
+		return true;
+	    }
 	}
 
 	// once the RHS tests are dispatched, get value and operator
@@ -225,11 +235,11 @@ export class Graph {
 	if ( operator === 'not' ) {
 	    const operand = this.getNodeByName(children[0]);
 	    if ( operand.value === true ) {
-		node.value = false;
+		setTruthValue( false );
 		return true;
 	    }
 	    if ( operand.value === false ) {
-		node.value = true;
+		setTruthValue( true );
 		return true;
 	    }
 	}
@@ -239,7 +249,7 @@ export class Graph {
 	    const left_operand = this.getNodeByName(children[0]);
 	    const right_operand = this.getNodeByName(children[1]);
 	    if ( left_operand.value || right_operand.value ) {
-		node.value = true;
+		setTruthValue( true );
 		return true;
 	    }
 	}
@@ -249,7 +259,7 @@ export class Graph {
 	    const left_operand = this.getNodeByName(children[0]);
 	    const right_operand = this.getNodeByName(children[1]);
 	    if ( left_operand.value && right_operand.value ) {
-		node.value = true;
+		setTruthValue( true );
 		return true;
 	    }
 	}
@@ -258,7 +268,7 @@ export class Graph {
 	// accepted because it was null (or its immediate child was if
 	// it was an RHS), add it to the missingValuesStack
 	
-	if ( rootOperator === 'prop' && node.value === null )
+	if ( !RHS && rootOperator === 'prop' && node.value === null )
 	    missingValuesStack.push(rootNode.name);
 	
 	return false;
@@ -289,24 +299,24 @@ export class Graph {
 }
 
 export class Node {
-    constructor( args = {name: null, nodeType: 'prop', value: null, nodeNames: []} )  {
-	let {name, nodeType, value, nodeNames} = args;
+    constructor( {name = null, nodeType = 'prop', value = null, nodeNames = []} = {})  {
+	// let {name, nodeType, value, nodeNames} = args;
 	// debugger;
-	this.name = {name: name, takenNames: nodeNames};
+	this.name = {name: name, nodeType: nodeType, takenNames: nodeNames};
 	this.nodeType = nodeType;
 	this.value = value;
-
     }
 
-    // has to be a props object with {name: <name>, takenNames: <names
+    // has to be a props object with {name: <name>, nodeType: <nodeType>, takenNames: <names 
     // that are not available>}
-    set name( nameInfo ) {
-	let { name, nodeNames } = nameInfo;
+    set name( {name = null, nodeType = null, takenNames = [] } = {} ) {
 
-	// generate a unique name if one isn't provided
-	if ( name ) this._name = name;
+	// throw if name is already in the graph
+	if ( takenNames && takenNames.includes(name) ) throw new Error( " node name has already been used in this graph");
+	// generate a unique name if a unique name isn't provided
+	if ( name  ) this._name = name;
 	else {
-	    this._name = _uniqueName(nodeNames);
+	    this._name = _uniqueName(nodeType, takenNames);
 	}
     }
 
@@ -343,14 +353,14 @@ export class Node {
     }
 }
 
-const _uniqueName = ( takenNames ) => {
-    let proposedName = _defaultName();
+const _uniqueName = ( nodeType, takenNames ) => {
+    let proposedName = _defaultName( nodeType );
     if ( typeof takenNames === 'undefined' || takenNames.length < 1 ) return proposedName;
     else if ( proposedName in takenNames ) _uniqueName( takenNames );
     else return proposedName;
 };
 
-const _defaultName = () => {
+const _defaultName = ( nodeType ) => {
     // get a random char number between 65 to 122
     // thx to https://stats.stackexchange.com/questions/281162/scale-a-number-between-a-range
     let randomWordLen = 10;
@@ -362,6 +372,8 @@ const _defaultName = () => {
     for(let i=0; i < randomWordLen; i++) {
 	name += charNum(Math.random());
     }
+
+    name = nodeType + '_' + name;
 
     return name;
 };

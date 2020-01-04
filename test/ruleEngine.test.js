@@ -1,4 +1,4 @@
-import { RuleBase, Fact, Rule } from '../src/ruleEngine';
+import { RuleBase, Fact, Rule, ParseError } from '../src/ruleEngine';
 import { Graph } from '../src/graph';
 
 describe( "Fact class creation", () => {
@@ -46,13 +46,102 @@ describe( "RuleBase.parseRule", () => {
 	);
     });
 
-    describe( "RuleBase.createRuleTree", () => {
-	it( "should return the supplied graph with a new rule parsed as new nodes", () => {
-	const graph = new Graph();
-	const ast = RuleBase.parseRule('a and (b or not c) then d', graph);
-	    expect( () => RuleBase.createRuleTree( ast ) ).toThrow();
-	    expect( () => RuleBase.createRuleTree( ast, graph ) ).not.toThrow();
-	    expect( RuleBase.createRuleTree( ast, graph ) ).toBeInstanceOf(Graph);
+    describe( "RuleBase.parseRule", () => {
+	it( "should handle a variety of logical expressions", () => {
+	    expect( RuleBase.parseRule( 'a' )).toStrictEqual(
+		{"name": "a", "type": "Identifier"}
+	    );
+	    expect( RuleBase.parseRule( 'not a' )).toStrictEqual(
+		{"argument": {"name": "a", "type": "Identifier"}, "operator": "not", "prefix": true, "type": "UnaryExpression"}
+	    );
+	    expect( () => RuleBase.parseRule( 'not alphaGetty and not and b and c )' )).toThrow(ParseError);
+	    expect( RuleBase.parseRule( 'a and not ( b and c )' )).toStrictEqual(
+		{
+		    "left": {
+			"name": "a",
+			"type": "Identifier"
+		    },
+		    "operator": "and",
+		    "right": {
+			"argument": {
+			    "left": {
+				"name": "b",
+				"type": "Identifier"
+			    },
+			    "operator": "and",
+			    "right": {
+				"name": "c",
+				"type": "Identifier"
+			    },
+			    "type": "BinaryExpression"
+			},
+			"operator": "not",
+			"prefix": true,
+			"type": "UnaryExpression"
+		    },
+		    "type": "BinaryExpression"
+		}
+	    );
 	});
     });
+    
+    describe( "RuleBase.createRuleTree", () => {
+	it( "should throw a ParseError", () => {
+	    const graph = new Graph();
+	    const ast = RuleBase.parseRule('a and (b or not c) then d');
+
+	    expect( () => RuleBase.createRuleTree( ast ) ).toThrow(ParseError);
+	    expect( () => RuleBase.createRuleTree( ast, graph ) ).not.toThrow();
+	});
+    });
+
+    describe( "RuleBase.createRuleTree", () => {
+	const graph = new Graph();
+	const ast = RuleBase.parseRule('a and (b or not c) then d');
+	const updatedGraph = RuleBase.createRuleTree( ast, graph );
+	const adjList = updatedGraph.adjList;
+
+	it( "should return a Graph object with the rule parsed into new nodes with appropriate edges", () => {
+	    expect( adjList ).toMatchObject(
+		{ d: [ expect.stringMatching(/and_.*/) ] }
+	    );
+	    expect( Object.keys(adjList) )
+		.toEqual( expect.arrayContaining(
+		    [
+			'd',
+			expect.stringMatching(/and_.*/),
+			'a',
+			expect.stringMatching(/or_.*/),
+			'b',
+			expect.stringMatching(/not_.*/), 'c']
+		));
+	});
+
+	const goalNodes = updatedGraph.findGoalNodes();
+	
+	it( "should find the goal node of 'd' in the rule tree", () => {
+	    expect( goalNodes ).toEqual( ['d'] );
+	});
+
+	it( "should evaluate the rule tree", () => {
+	    expect( updatedGraph.evalGoalNodes( goalNodes )).toEqual(
+		{"d":
+		 {
+		     "missing": ["a", "b", "c"],
+		     "truthiness": null
+		 }
+		}
+	    );
+	    
+	    for ( let i of ['a', 'b', 'c'] ) 
+		updatedGraph.getNodeByName(i).value = true;
+
+	    debugger;
+	    expect( updatedGraph.evalGoalNodes( goalNodes )).toEqual();
+	    
+	    console.log( updatedGraph.nodes );
+	    
+	});
+    });
+    
 });

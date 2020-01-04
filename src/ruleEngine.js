@@ -3,27 +3,93 @@
 import { Graph, Node } from './graph';
 import jsep from 'jsep';
 
+class ParseError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ParseError";
+  }
+}
+
 export class RuleBase {
 
     static createRuleTree( ast, graph ) {
+	// debugger;
 	if ( !graph ) throw new Error( "createRuleTree requires a graph object as its second parameter.");
-	this._parseASTNode( ast, graph );
+	let parent = null;
+	this._parseASTNode( ast, graph, parent );
 	return graph;
     }
 
-    static _parseASTNode( ast, graph ) {
-	const OpError = new Error('operator not recognized');
+    static _parseASTNode( ast, graph, parent ) {
+	
+	// check to see if the type is 'Identifier' in which
+	// case it's a variable name and we can create a
+	// prop(osition) node for it
+	const testIdentifier = ( node ) => { return ( node && node.type === 'Identifier' ) ? true : false; };
+	const processBinary = ( ) => {
+	    const left = ast.left;
+	    const right = ast.right;
+	    // process the operator itself (the root of this iteration)
+	    const root = graph.createNode( { nodeType: ast.operator } );
+	    graph.addEdge( parent, root.name );
 
-	switch ( ast.operator ) {
-	case 'then':
+	    let newLeftNode, newRightNode;
+	    // process the left side
 	    
+	    if ( testIdentifier( left ) ) {
+		newLeftNode = graph.createNode( { name: left.name, nodeType: 'prop' } );
+		graph.addEdge( root.name, newLeftNode.name ); 
+	    } else this._parseASTNode( right, graph, root.name );
+
+	    // process the right side
+	    if ( testIdentifier( right ) ) {
+		newRightNode = graph.createNode( { name: right.name, nodeType: 'prop' } );
+		graph.addEdge( root.name, newRightNode.name ); 
+	    } else this._parseASTNode( right, graph, root.name );
+	};
+	const processNotOperator = () => {
+	    const notNode = graph.createNode( { nodeType: 'not' } );
+	    graph.addEdge( parent, notNode.name );
+	    
+	    if ( ast.argument.type === 'Identifier' ) {
+		const notOperandNode = graph.createNode( { name: ast.argument.name, nodeType: 'prop' });
+		graph.addEdge( notNode.name, notOperandNode.name );
+	    } else this._parseASTNode( ast.argument, graph, notNode.name );
+	};
+	
+	switch ( ast.type ) {
+	case 'BinaryExpression':
+	    switch ( ast.operator ) {
+	    case 'then':
+		if ( ast.right &&  ast.right.type === 'Identifier' ) {
+		    const parent = graph.createNode( {name: ast.right.name, nodeType: 'prop' } );
+		    this._parseASTNode(ast.left, graph, parent.name);
+		}
+		break;
+	    case 'and':
+	    case 'or':
+		processBinary();
+		break;
+	    default:
+		throw new ParseError(`_parseASTNode could not parse the BinaryExpression with the following properties:
+					operator: ${ast.operator}
+					
+				`);
+	    }
 	    break;
-	case 'and':
-	    break;
-	case 'or':
+	case 'UnaryExpression':
+	    switch( ast.operator) {
+	    case 'not':
+		processNotOperator();
+		break;
+	    default:
+		throw new ParseError(`_parseASTNode could not parse the UnaryExpression that had a ${ast.operator} operator`);
+	    }
 	    break;
 	default:
-	    throw OpError;
+	    throw new ParseError(`_parseASTNode could not parse the ast.type - parameters passed in were:
+					ast.type:	${ast.type}
+					ast.operator:	${ast.operator}`);
 	}
     }
     
@@ -39,7 +105,9 @@ export class RuleBase {
 	try {
 	    return jsep(rule);
 	} catch (err) {
-	    throw new Error( `There was an error parsing the rule: ${err}`);
+	    throw new ParseError(`jsep encountered the following error parsing the supplied rule text:
+		RULE TEXT:		${rule}
+		JSEP ERROR:		${err}`);
 	}
     }
 }

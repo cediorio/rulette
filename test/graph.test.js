@@ -32,8 +32,12 @@ describe("Basic Graph Creation", () => {
 	expect(graph).toHaveProperty('adjList');
     });
 
-    it("should add node to the graph's adjacency list", () => {
+    it("should have node in the graph's adjacency list", () => {
 	expect(graph.adjList).toHaveProperty(A.name, []);
+    });
+
+    it("should reject an attempt to provide a name that already exists in the graph", () => {
+	expect( () => graph.createNode({name: 'testA', nodeType: 'prop'})).toThrow();
     });
 
     it("should add an edge between nodes A and B", () => {
@@ -147,7 +151,7 @@ describe( "evalRuleTree (backtracking algorithm)", () => {
     });
 
     it( "should return missingValuesStack after evaluation where the root has an 'and' operator and it has a null child", () => {
-	expect( graph.evalRuleTree( 'd' ) ).toHaveProperty('missing', ['d', 'a']);
+	expect( graph.evalRuleTree( 'd' ) ).toHaveProperty('missing', ['a']);
     });
 
     it( "should return the result object node where the root has an 'and' operator and the previously false child is set to true", () => {
