@@ -140,7 +140,7 @@ export class Graph {
     
     evalRuleTree(c) {
 	
-	// recursion stack for nodes that are not accepted, so we can
+	//  stack for nodes that are not accepted, so we can
 	// retest once rules further down the tree have been evaluated
 	const missingValuesStack = [];
 	
@@ -193,53 +193,25 @@ export class Graph {
 	 * otherwise. It may assume that the partial candidate c and
 	 * all its ancestors in the tree have passed the reject
 	 * test. */
-	const rootNode = this.getNodeByName(c);
-	const rootChildren = this.adjList[rootNode.name];
-	const RHS = ( rootChildren.length === 1 && rootNode.nodeType === 'prop' ) ? true : false;
-	const rootOperator = rootNode.nodeType;
-	
-	let node = rootNode;
-	// create a truth value setter that will set both the root and
-	// node to the applicable truth value (we have both in case we
-	// are dealing with an RHS, in which case node is the child of
-	// the root, and both need to be set
-	const setTruthValue = ( val ) => {
-	    node.value = val;
-	    rootNode.value = val;
-	};
-	
-	// return the node itself if it is already true
-	if ( rootNode.value ) return true;
-
-	// if the node is an RHS, sub in its child, since the child
-	// will be the actual test that matters
-	if ( RHS ) {
-	    const childNode = this.getNodeByName( rootChildren[0] );
-	    node = childNode;
-	    
-	    if ( node.value === true ) {
-		rootNode.value = true;
-		return true;
-	    }
-	}
-
-	// once the RHS tests are dispatched, get value and operator
-	// and continue logical tests
-	const value = node.value;
+	const node = this.getNodeByName(c);
+	const children = this.adjList[node.name];
 	const operator = node.nodeType;
-	const children = this.getNodeChildren(node.name);
-	
+	const value = node.value;
+			
+	// return the node itself if it is already true
+	if ( node.value ) return true;
+
 	// different tests for different operators, obviously
 
 	// NOT NODE
 	if ( operator === 'not' ) {
 	    const operand = this.getNodeByName(children[0]);
 	    if ( operand.value === true ) {
-		setTruthValue( false );
+		node.value = false;
 		return true;
 	    }
 	    if ( operand.value === false ) {
-		setTruthValue( true );
+		node.value = true;
 		return true;
 	    }
 	}
@@ -249,7 +221,7 @@ export class Graph {
 	    const left_operand = this.getNodeByName(children[0]);
 	    const right_operand = this.getNodeByName(children[1]);
 	    if ( left_operand.value || right_operand.value ) {
-		setTruthValue( true );
+		node.value = true;
 		return true;
 	    }
 	}
@@ -259,7 +231,7 @@ export class Graph {
 	    const left_operand = this.getNodeByName(children[0]);
 	    const right_operand = this.getNodeByName(children[1]);
 	    if ( left_operand.value && right_operand.value ) {
-		setTruthValue( true );
+		node.value = true;
 		return true;
 	    }
 	}
@@ -268,8 +240,8 @@ export class Graph {
 	// accepted because it was null (or its immediate child was if
 	// it was an RHS), add it to the missingValuesStack
 	
-	if ( !RHS && rootOperator === 'prop' && node.value === null )
-	    missingValuesStack.push(rootNode.name);
+	// if ( operator === 'prop' && node.value === null )
+	//     missingValuesStack.push( node.name );
 	
 	return false;
     }

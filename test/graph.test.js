@@ -113,7 +113,27 @@ describe( "Find goal nodes", () => {
     });
 });
 
-describe( "evalRuleTree (backtracking algorithm)", () => {
+describe( "evalRuleTree (backtracking algorithm) - simple not eval with operand set to false", () => {
+    const graph = new Graph();
+    graph.createNode( { name: 'a', value: false } );
+    graph.createNode( { name: 'not', nodeType: 'not' } );
+    graph.addEdge( 'not', 'a' );
+    debugger;
+    it( "should eval to true", () => {
+	expect( graph.evalGoalNodes( 'not' ) ).toHaveProperty( 'truthiness', true );
+    });
+
+    describe( "change value of 'not' operand to false", () => {
+	graph.getNodeByName('a').value = true;
+
+	it( "should eval to false", () => {
+	    expect( graph.evalRuleTree( 'not' ) ).toHaveProperty( 'truthiness', false );
+	});
+    });
+});
+
+
+describe.skip( "evalRuleTree (backtracking algorithm)", () => {
     const graph = new Graph();
     graph.createNode({name: 'd'});
     graph.createNode({name: 'and', nodeType: 'and'});

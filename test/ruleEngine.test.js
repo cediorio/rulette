@@ -17,7 +17,7 @@ describe( "Rule class creation", () => {
     });
 });
 
-describe( "RuleBase.parseRule", () => {
+describe( "RuleBase.parseRule to AST", () => {
     it( "should return an abstract syntax tree", () => {
 	const graph = new Graph();
 	const ast = RuleBase.parseRule('a and (b or not c) then d', graph);
@@ -46,7 +46,7 @@ describe( "RuleBase.parseRule", () => {
 	);
     });
 
-    describe( "RuleBase.parseRule", () => {
+    describe( "RuleBase.parseRule grammars", () => {
 	it( "should handle a variety of logical expressions", () => {
 	    expect( RuleBase.parseRule( 'a' )).toStrictEqual(
 		{"name": "a", "type": "Identifier"}
@@ -117,31 +117,38 @@ describe( "RuleBase.parseRule", () => {
 		));
 	});
 
-	const goalNodes = updatedGraph.findGoalNodes();
-	
-	it( "should find the goal node of 'd' in the rule tree", () => {
-	    expect( goalNodes ).toEqual( ['d'] );
-	});
+    }); 
+});
 
-	it( "should evaluate the rule tree", () => {
-	    expect( updatedGraph.evalGoalNodes( goalNodes )).toEqual(
-		{"d":
-		 {
-		     "missing": ["a", "b", "c"],
-		     "truthiness": null
-		 }
-		}
-	    );
-	    
-	    for ( let i of ['a', 'b', 'c'] ) 
-		updatedGraph.getNodeByName(i).value = true;
+describe.skip( "RuleBase.findGoalNodes and evalGoalnodes", () => {
+    const graph = new Graph();
+    const ast = RuleBase.parseRule('a and (b or not c) then d');
+    const updatedGraph = RuleBase.createRuleTree( ast, graph );
+    const adjList = updatedGraph.adjList;
 
-	    debugger;
-	    expect( updatedGraph.evalGoalNodes( goalNodes )).toEqual();
-	    
-	    console.log( updatedGraph.nodes );
-	    
-	});
-    });
+    const goalNodes = updatedGraph.findGoalNodes();
     
+    it( "should find the goal node of 'd' in the rule tree", () => {
+	expect( goalNodes ).toEqual( ['d'] );
+    });
+
+    it( "should evaluate the rule tree", () => {
+	expect( updatedGraph.evalGoalNodes( goalNodes )).toEqual(
+	    {"d":
+	     {
+		 "missing": ["a", "b", "c"],
+		 "truthiness": null
+	     }
+	    }
+	);
+	
+	for ( let i of ['a', 'b', 'c'] ) 
+	    updatedGraph.getNodeByName(i).value = true;
+
+	debugger;
+	expect( updatedGraph.evalGoalNodes( goalNodes )).toEqual();
+	
+	console.log( updatedGraph.nodes );
+	
+    });
 });
