@@ -5,6 +5,7 @@ export class Graph {
 	this._name = name;
 	this._adjList = {};
 	this._nodes = [];
+	this.missingValuesStack = [];
     }
 
     get name() {
@@ -139,56 +140,123 @@ export class Graph {
     }
     
     evalRuleTree(c) {
-	
-	//  stack for nodes that are not accepted, so we can
-	// retest once rules further down the tree have been evaluated
-	const missingValuesStack = [];
-	
 	// _evalRTUtil will return an object with the truthiness of
 	// the evaluated rule tree if it can reject or accept it and
 	// the node that was evaluated -- otherwise, it returns an
 	// array of the props it was unable to find values for
-	const result = this._evalRTUtil( c, missingValuesStack );
+	const visited = {};	// note that this isn't currently set anywhere, but may become useful
+				// in future to iterate where facts are solicited interactively
+	const result = this._evalRTUtil( c, visited );
 	return result;
     }
 
-    _evalRTUtil(c, missingValuesStack) {
+    _evalRTUtil( c, visited ) {
 	/* Will return: (1) on success: the node that was successfully
 	 * evaluated; (2) on failure, an array containing the nodes
 	 * which are missing truth values. 
 	 */
 	
 	if (typeof c === 'undefined') throw new Error( 'You must supply a root node to begin the backtracking search.' );
-	if( this._reject(c) )
+
+	if( this._reject( c ) )
 	    return {
-		result: 'success',
-		node: this.getNodeByName(c)
+		result: 'reject',
+		nodes: this.missingValuesStack
 	    };
-	if ( this._accept(c, missingValuesStack) )
+
+	if ( this._accept(c) )
 	    return {
-		result: 'success',
-		node: this.getNodeByName(c)
+		result: 'accept',
+		nodes: this.getNodeByName(c)
 	    };
 
 	const children = this.adjList[c];
-
+	
 	for ( let s of children) {
-	    this._evalRTUtil(s, missingValuesStack);
+	    if( !visited[s] ) this._evalRTUtil(s, visited);
+	}
+
+	throw new Error(`_evalRTUtil was unable to evaluate the rule tree provided:
+				rule tree root node: ${this.getNodeByName(c)}
+			` );
+    }
+
+    _checkIfUndefined( c ) {
+	const node = this.getNodeByName(c);
+	if ( node.value === null ) {
+	    return true;
+	} else return false;
+    }
+
+    _reject( c ) {
+	// The reject procedure should return true only if the
+	// candidate or its children that could evaluate to a truth
+	// result are undefined, in which case return the list of
+	// missing values
+
+	// determine undefined status for root and children (depending
+	// on operator type)
+	const root = this.getNodeByName(c);
+	let operator = root.nodeType;
+	const rootUndefValue = this._checkIfUndefined(c);
+	const children = this.adjList[c].map( e => this.getNodeByName(e) );
+	const RHS = operator === 'prop' && children.length > 0;
+	// if the node is an RHS, then give it a special operator
+	operator = RHS ? 'rhs' : operator; 
+	const left = children[0];
+	const right = children[1];
+	let leftUndefValue = left ? this._checkIfUndefined(children[0].name) : null;
+	// a node that is either a 'not' or an RHS will have no right child
+	let rightUndefValue = operator !== 'not' && !RHS && ( right ? this._checkIfUndefined(children[1].name) : null ); 
+
+	const pushToMissingValues = (n) => {
+	    if ( !( n instanceof Node ) ) throw new Error( "usage: pushToMissingValues( <Node> )" );
+	    if ( n.value === null ) {
+		if ( !this.missingValuesStack.includes(n.name) ) this.missingValuesStack.push(n.name);
+	    }
+	};
+	
+	switch ( operator ) {
+	case 'rhs':
+	case 'not':
+	    leftUndefValue = leftUndefValue && 
+		( ( this.adjList[left.name].length > 0 ) ? this._reject(left.name) : true );
+
+	    if ( rootUndefValue && leftUndefValue ) { // only one operand with 'not' 
+		[ root, left ].forEach( e => pushToMissingValues(e) );
+		return true;
+	    }
+	    break;
+	    
+	case 'and':
+	    leftUndefValue = leftUndefValue && 
+		( ( this.adjList[left.name].length > 0 ) ? this._reject(left.name) : true );
+	    rightUndefValue = rightUndefValue &&
+		( ( this.adjList[right.name].length > 0 ) ? this._reject(right.name) : true );
+	    
+	    if ( rootUndefValue && ( leftUndefValue || rightUndefValue ) ) {
+		[ root, left, right ].forEach( e => pushToMissingValues(e) );
+   		return true;
+	    }
+	    break;
+
+	case 'or':
+	    leftUndefValue = leftUndefValue && 
+		( ( this.adjList[left.name].length > 0 ) ? this._reject(left.name) : true );
+	    rightUndefValue = rightUndefValue &&
+		( ( this.adjList[right.name].length > 0 ) ? this._reject(right.name) : true );
+
+	    if ( rootUndefValue && ( leftUndefValue && rightUndefValue  ) ) {
+		[ root, left, right ].forEach( e => pushToMissingValues(e) );
+   		return true;
+	    }
+	    break;
 	}
 	
-	return missingValuesStack;
-    }
-
-    _reject(c) {
-	/* The reject procedure should return true only if the
-	 * candidate has already been found/set to false -- i.e.,
-	 * there is no point in further traversal of the tree. */
-	const node = this.getNodeByName(c);
-	if( node.value === false ) return true;
 	return false;
-    }
+    } // end _reject
     
-    _accept(c, missingValuesStack) {
+    _accept(c) {
 	/* The accept procedure should return true if c is a complete
 	 * and valid solution for the problem instance P, and false
 	 * otherwise. It may assume that the partial candidate c and
@@ -198,20 +266,28 @@ export class Graph {
 	const children = this.adjList[node.name];
 	const operator = node.nodeType;
 	const value = node.value;
+	const RHS = operator === 'prop' && children.length > 0;
+	const left = this.getNodeByName(children[0]);
+	const right = this.getNodeByName(children[1]);
 			
-	// return the node itself if it is already true
-	if ( value ) return true;
+	// return true if the node already has a value
+	if ( value !== null ) return true;
 
 	// different tests for different operators, obviously
 
+	// RHS
+	if ( RHS ) {
+	    node.value = left.value;
+	    return true;
+	}
+	
 	// NOT NODE
 	if ( operator === 'not' ) {
-	    const operand = this.getNodeByName(children[0]);
-	    if ( operand.value === true ) {
+	    if ( left.value === true ) {
 		node.value = false;
 		return true;
 	    }
-	    if ( operand.value === false ) {
+	    if ( left.value === false ) {
 		node.value = true;
 		return true;
 	    }
@@ -219,62 +295,25 @@ export class Graph {
 
 	// OR NODE
 	if ( operator === 'or' ) {
-	    const left_operand = this.getNodeByName(children[0]);
-	    const right_operand = this.getNodeByName(children[1]);
-	    if ( left_operand.value || right_operand.value ) {
-		node.value = true;
-		return true;
-	    }
+	    node.value = left.value || right.value;
+	    return true;
 	}
 
 	// AND NODE
 	if ( operator === 'and' ) {
-	    const left_operand = this.getNodeByName(children[0]);
-	    const right_operand = this.getNodeByName(children[1]);
-	    if ( left_operand.value && right_operand.value ) {
-		node.value = true;
-		return true;
-	    }
+	    node.value = left.value && right.value;
+	    return true;
 	}
-
-	// if this operator was a prop and was unable to evaluate as
-	// accepted because it was null (or its immediate child was if
-	// it was an RHS), add it to the missingValuesStack
-	
-	// if ( operator === 'prop' && node.value === null )
-	missingValuesStack.push( node.name );
 	
 	return false;
-    }
 
-    _first(c) {
-	/* The first and next procedures are used by the backtracking
-	 * algorithm to enumerate the children of a node c of the
-	 * tree, that is, the candidates that differ from c by a
-	 * single extension step. The call first(P,c) should yield the
-	 * first child of c, in some order; and the call next(P,s)
-	 * should return the next sibling of node s, in that
-	 * order. Both functions should return a distinctive "NULL"
-	 * candidate, if the requested child does not exist. */
-	const children = this.adjList[c]; 
-	const first = ( children.length > 0 ) ? children[0] : null;
-
-	return first;
-    }
-
-    _next(c, cnt) {
-
-	const children = this.adjList[c];
-	const next = ( children.length > 0 ) ? children[cnt+1] : null;
-
-	return next;
-    }
+    } // end _accept
 }
 
 export class Node {
     constructor( {name = null, nodeType = 'prop', value = null, nodeNames = []} = {})  {
 	// let {name, nodeType, value, nodeNames} = args;
-	// debugger;
+
 	this.name = {name: name, nodeType: nodeType, takenNames: nodeNames};
 	this.nodeType = nodeType;
 	this.value = value;

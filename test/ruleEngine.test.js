@@ -120,7 +120,7 @@ describe( "RuleBase.parseRule to AST", () => {
     }); 
 });
 
-describe.skip( "RuleBase.findGoalNodes and evalGoalnodes", () => {
+describe( "RuleBase.findGoalNodes", () => {
     const graph = new Graph();
     const ast = RuleBase.parseRule('a and (b or not c) then d');
     const updatedGraph = RuleBase.createRuleTree( ast, graph );
@@ -132,22 +132,4 @@ describe.skip( "RuleBase.findGoalNodes and evalGoalnodes", () => {
 	expect( goalNodes ).toEqual( ['d'] );
     });
 
-    it( "should evaluate the rule tree", () => {
-	expect( updatedGraph.evalGoalNodes( goalNodes )).toEqual(
-	    {"d":
-	     {
-		 "missing": ["a", "b", "c"],
-		 "truthiness": null
-	     }
-	    }
-	);
-	
-	for ( let i of ['a', 'b', 'c'] ) 
-	    updatedGraph.getNodeByName(i).value = true;
-
-	expect( updatedGraph.evalGoalNodes( goalNodes )).toEqual();
-	
-	console.log( updatedGraph.nodes );
-	
-    });
 });
