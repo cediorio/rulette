@@ -350,12 +350,14 @@ export class Node {
 	return this._nodeType;
     }
 
-    // enforces use of set valueTypes, defaults to 'prop' (proposition)
+    // enforces use of set valueTypes
     set value(value) {
-	const valueTypes = [ true, false ];
-	if ( valueTypes.includes(value) )
+	const valueTypes = [ true, false, 'true', 'false' ]; // values may be received as strings
+	if ( valueTypes.includes(value) ) {
+	    if ( value === 'true' ) value = true;
+	    if ( value === 'false' ) value = false;
 	    this._value = value;
-	else if ( value !== null && typeof value !== 'undefined' && !valueTypes.includes(value) ) {
+	} else if ( value !== null && typeof value !== 'undefined' && !valueTypes.includes(value) ) {
 	    throw new Error(`value must be one of ${valueTypes}`);
 	} else this._value = null;
     }

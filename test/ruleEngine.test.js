@@ -1,21 +1,5 @@
-import { RuleBase, Fact, Rule, ParseError } from '../src/ruleEngine';
+import { RuleBase, ParseError } from '../src/ruleEngine';
 import { Graph } from '../src/graph';
-
-describe( "Fact class creation", () => {
-    it( "should return an object", () => {
-	const fact = new Fact();
-	expect( fact ).toBeInstanceOf( Fact );
-	expect( typeof fact.name ).toBe('string');
-	
-    });
-});
-
-describe( "Rule class creation", () => {
-    it( "should return an object", () => {
-	const rule = new Rule();
-	expect( rule ).toBeInstanceOf( Rule );
-    });
-});
 
 describe( "RuleBase.parseRule to AST", () => {
     it( "should return an abstract syntax tree", () => {
