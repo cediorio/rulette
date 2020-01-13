@@ -75,7 +75,9 @@ describe( "RuleBase.parseRule to AST", () => {
 	    const ast = RuleBase.parseRule('a and (b or not c) then d');
 
 	    expect( () => RuleBase.createRuleTree( ast ) ).toThrow(ParseError);
-	    expect( () => RuleBase.createRuleTree( ast, graph ) ).not.toThrow();
+	    expect( () => {
+		RuleBase.createRuleTree( ast, graph );
+	    }).not.toThrow();
 	});
     });
 
@@ -84,7 +86,7 @@ describe( "RuleBase.parseRule to AST", () => {
 	const ast = RuleBase.parseRule('a and (b or not c) then d');
 	const updatedGraph = RuleBase.createRuleTree( ast, graph );
 	const adjList = updatedGraph.adjList;
-
+	
 	it( "should return a Graph object with the rule parsed into new nodes with appropriate edges", () => {
 	    expect( adjList ).toMatchObject(
 		{ d: [ expect.stringMatching(/and_.*/) ] }
@@ -101,7 +103,20 @@ describe( "RuleBase.parseRule to AST", () => {
 		));
 	});
 
-    }); 
+    });
+
+    describe( "RuleBase.createRuleTree with intra-rule references", () => {
+	const graph = new Graph();
+	const ast1 = RuleBase.parseRule('a and b then c');
+	const ast2 = RuleBase.parseRule('c then d');
+	RuleBase.createRuleTree( ast1, graph );
+	const updatedGraph = RuleBase.createRuleTree( ast2, graph );
+	const adjList = updatedGraph.adjList;
+	
+	it( "node d should have an edge to c", () => {
+	    expect( adjList['d'].includes('c') ).toBe(true);
+	});
+    });
 });
 
 describe( "RuleBase.findGoalNodes", () => {
@@ -109,7 +124,6 @@ describe( "RuleBase.findGoalNodes", () => {
     const ast = RuleBase.parseRule('a and (b or not c) then d');
     const updatedGraph = RuleBase.createRuleTree( ast, graph );
     const adjList = updatedGraph.adjList;
-
     const goalNodes = updatedGraph.findGoalNodes();
     
     it( "should find the goal node of 'd' in the rule tree", () => {
@@ -117,3 +131,5 @@ describe( "RuleBase.findGoalNodes", () => {
     });
 
 });
+
+

@@ -1,4 +1,5 @@
 import { Node, Graph } from '../src/graph';
+import { RuleBase } from '../src/ruleEngine.js';
 
 describe("Nodes", () => {
     const nodeA = new Node();
@@ -307,9 +308,72 @@ describe( "evalRuleTree (backtracking algorithm)", () => {
     it( "should return the result object node where the root has an 'and' operator and the previously false child is set to true", () => {
 	const a = graph.getNodeByName('a');
 	a.value = true;
-	debugger;
 	const result = graph.evalRuleTree( 'd' );
 	
 	expect( result ).toHaveProperty('result', 'accept');
     });    
+});
+
+describe( "evalGoalNodes - simple one rule if-then", () => {
+    const graph = new Graph();
+    const ast = RuleBase.parseRule('d then e');
+    const updatedGraph = RuleBase.createRuleTree( ast, graph );
+    const adjList = updatedGraph.adjList;
+    updatedGraph.getNodeByName('d').value = true;
+    const goalNodes = updatedGraph.findGoalNodes();
+
+    const result = updatedGraph.evalGoalNodes( goalNodes );
+
+    it( "should eval to accepted", () => {
+	expect( result.e.result ).toEqual( 'accept' );
+    });
+
+    it( "result.e.nodes.value should be true", () => {
+	expect( result.e.nodes.value ).toEqual( true );
+    });
+});
+
+describe( "evalGoalNodes - simple one rule with not LHS", () => {
+    const graph = new Graph();
+    const ast = RuleBase.parseRule('not d then e');
+    const updatedGraph = RuleBase.createRuleTree( ast, graph );
+    const adjList = updatedGraph.adjList;
+    updatedGraph.getNodeByName('d').value = false;
+    const goalNodes = updatedGraph.findGoalNodes();
+    const result = updatedGraph.evalGoalNodes( goalNodes );
+
+    it( "should eval to accepted", () => {
+	expect( result.e.result ).toEqual( 'accept' );
+    });
+
+    it( "result.e.nodes.value should be true", () => {
+	expect( result.e.nodes.value ).toEqual( true );
+    });
+});
+
+describe( "evalGoalNodes - simple three rule graph", () => {
+    const graph = new Graph();
+    const ast1 = RuleBase.parseRule('a and (b or not c) then d');
+    RuleBase.createRuleTree( ast1, graph );
+    const ast2 = RuleBase.parseRule('d then e');
+    let updatedGraph = RuleBase.createRuleTree( ast2, graph );
+    const ast3 = RuleBase.parseRule('e and f then g');
+    updatedGraph = RuleBase.createRuleTree( ast3, graph );
+    const adjList = updatedGraph.adjList;
+    updatedGraph.getNodeByName('a').value = false;
+    updatedGraph.getNodeByName('b').value = true;
+    updatedGraph.getNodeByName('f').value = true;
+    const goalNodes = updatedGraph.findGoalNodes();
+
+    debugger;
+    const result = updatedGraph.evalGoalNodes( goalNodes );
+
+    it( "result should be accept", () => {
+	expect( result.g.result ).toEqual( 'accept' );
+    });
+
+    it( "result.e.nodes.value should be false", () => {
+	expect( result.g.nodes.value ).toEqual( false );
+    });
+
 });

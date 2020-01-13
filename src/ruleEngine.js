@@ -1,6 +1,6 @@
 /** Define classes for RuleBase **/
 
-import { Graph, Node } from './graph';
+import { Graph, Node, DuplicateNameError } from './graph';
 import jsep from 'jsep';
 
 class ParseError extends Error {
@@ -21,7 +21,6 @@ export class RuleBase {
     }
 
     static _parseASTNode( ast, graph, parent ) {
-	
 	// check to see if the type is 'Identifier' in which
 	// case it's a variable name and we can create a
 	// prop(osition) node for it
@@ -36,39 +35,91 @@ export class RuleBase {
 	    let newLeftNode, newRightNode;
 	    // process the left side
 	    
+	    // begin by testing if the node is of type 'Identifier',
+	    // in which case it corresponds to a fact and should be
+	    // added as a 'prop' node
 	    if ( testIdentifier( left ) ) {
-		newLeftNode = graph.createNode( { name: left.name, nodeType: 'prop' } );
-		graph.addEdge( root.name, newLeftNode.name ); 
-	    } else this._parseASTNode( right, graph, root.name );
+		// only add a new node if the name is not already in the list
+		// if it is in the list, add an edge from this rule to the
+		// pre-existing Node with the same name
+		try {
+		    newLeftNode = graph.createNode( { name: left.name, nodeType: 'prop' } );
+		    graph.addEdge( root.name, newLeftNode.name );
+		} catch (e) {
+		    if ( e instanceof DuplicateNameError )
+			graph.addEdge( root.name, left.name );
+		}
+	    } else this._parseASTNode( left, graph, root.name );
 
 	    // process the right side
 	    if ( testIdentifier( right ) ) {
-		newRightNode = graph.createNode( { name: right.name, nodeType: 'prop' } );
-		graph.addEdge( root.name, newRightNode.name ); 
+		// same process as the left side above
+		try {
+		    newRightNode = graph.createNode( { name: right.name, nodeType: 'prop' } );
+		    graph.addEdge( root.name, newRightNode.name );
+		} catch (e) {
+		    if ( e instanceof DuplicateNameError )
+			graph.addEdge( root.name, right.name );
+		}
 	    } else this._parseASTNode( right, graph, root.name );
+
+	    return root;
 	};
+	
 	const processNotOperator = () => {
 	    const notNode = graph.createNode( { nodeType: 'not' } );
 	    graph.addEdge( parent, notNode.name );
 	    
 	    if ( ast.argument.type === 'Identifier' ) {
-		const notOperandNode = graph.createNode( { name: ast.argument.name, nodeType: 'prop' });
-		graph.addEdge( notNode.name, notOperandNode.name );
+		try {
+		    const notOperandNode = graph.createNode( { name: ast.argument.name, nodeType: 'prop' });
+		    graph.addEdge( notNode.name, notOperandNode.name );
+		} catch (e) {
+		    if ( e instanceof DuplicateNameError )
+			graph.addEdge( notNode.name, ast.argument.name );
+		}
 	    } else this._parseASTNode( ast.argument, graph, notNode.name );
+
+	    return notNode;
 	};
 	
 	switch ( ast.type ) {
 	case 'BinaryExpression':
 	    switch ( ast.operator ) {
 	    case 'then':
+		let rhs;
+		let lhs;
 		if ( ast.right &&  ast.right.type === 'Identifier' ) {
-		    const parent = graph.createNode( {name: ast.right.name, nodeType: 'prop' } );
-		    this._parseASTNode(ast.left, graph, parent.name);
-		}
+		    try {
+			rhs = graph.createNode( {name: ast.right.name, nodeType: 'prop' } );
+		    } catch (e) {
+			if ( e instanceof DuplicateNameError ) {
+			    graph.logging( e.message );
+			    rhs = graph.getNodeByName( ast.right.name );
+			} else {
+			    throw e;
+			}
+		    }
+		    // if the left side is just an 'Identifier' (i.e., no further logic)
+		    // then we don't need further parsing
+		    if ( ast.left.type !== 'Identifier' )
+			lhs = this._parseASTNode(ast.left, graph, rhs.name);
+		    else { // we do have a Node whose type is 'Identifier'
+			lhs = graph.getNodeByName(ast.left.name);
+			// if the previous call didn't find the node in the graph
+			// then create it
+			if ( typeof lhs === 'undefined' )
+			    lhs = graph.createNode( {name: ast.left.name, nodeType: 'prop'} );
+			// and finally add it to adjacency list
+			graph.addEdge( rhs.name, lhs.name );
+
+		    }
+
+		} else throw new Error( `There was a problem with the form of the AST provided: the RHS was not of type 'Identifier'`);
 		break;
 	    case 'and':
 	    case 'or':
-		processBinary();
+		return processBinary();
 		break;
 	    default:
 		throw new ParseError(`_parseASTNode could not parse the BinaryExpression with the following properties:
@@ -80,7 +131,7 @@ export class RuleBase {
 	case 'UnaryExpression':
 	    switch( ast.operator) {
 	    case 'not':
-		processNotOperator();
+		return processNotOperator();
 		break;
 	    default:
 		throw new ParseError(`_parseASTNode could not parse the UnaryExpression that had a ${ast.operator} operator`);
@@ -113,58 +164,33 @@ export class RuleBase {
 }
 
 
-export const fire = (kb) => {
-  //set up a sandbox context for evaluation
+/* OLD CODE AND DATA OBJECTS FOR DEV REFERENCE
 
-  var rules = setAgenda(kb.rules);
-  var facts = kb.facts;
-  var ruleResultsJSON = []; // full report on results of Rule evaluation
-  var openFacts = []; // Facts which have no answers yet
-  var closedFacts = []; // Facts which have been answered
-  var factEvalStr = buildFactEvalStr(facts);
-  // evaluate the rules
-  for (let i = 0; i < rules.length; i++) {
-    let resultText = "";
-    if (rules[i].lhs === "") continue; // skip if there is no rule on this line
-    let lhs_facts = tokenize(rules[i].lhs);
-    let ruleEvalStr = rules[i].lhs;
-    let result = vm.runInContext(factEvalStr + "\n" + ruleEvalStr, sandbox);
+    // ruleResultsJSON.push({
+    // 	name: rules[i].name,
+    // 	lhs: rules[i].lhs,
+    // 	rhs: rules[i].rhs,
+    // 	value: rules[i].value,
+    // 	topic: rules[i].topic,
+    // 	source: rules[i].source,
+    // 	result: resultText,
+    // 	facts: lhs_facts.map(function(i) {
+    // 	    var fact = getFactStatus(i, kb);
+    // 	    // var support_desc = !!fact.factDescription ? fact.factDescription : "No further support provided";
+    // 	    return {
+    // 		name: fact.name,
+    // 		value: fact.value,
+    // 		support_description: fact.factDescription
+    // 	    };
+    // 	})
+    // });
 
-    if (result) {
-      resultText = rules[i].trueDisplayValue;
-      vm.runInContext("var " + rules[i].rhs + " = true;", sandbox); // assert the right-hand of the rule
-      rules[i].value = true;
-    } else {
-      resultText = rules[i].falseDisplayValue;
-      vm.runInContext("var " + rules[i].rhs + " = false;", sandbox); // deny the right-hand of the rule
-      rules[i].value = false;
-    }
-    // console.log('this topic is: ' + rules[i].topic);
-    ruleResultsJSON.push({
-      name: rules[i].name,
-      lhs: rules[i].lhs,
-      rhs: rules[i].rhs,
-      value: rules[i].value,
-      topic: rules[i].topic,
-      source: rules[i].source,
-      result: resultText,
-      facts: lhs_facts.map(function(i) {
-        var fact = getFactStatus(i, kb);
-        // var support_desc = !!fact.factDescription ? fact.factDescription : "No further support provided";
-        return {
-          name: fact.name,
-          value: fact.value,
-          support_description: fact.factDescription
-        };
-      })
-    });
-  }
-  // console.log(resultsJSON);
-  return {
-    ruleResultsJSON,
-    openFacts,
-    closedFacts
-  };
+    // console.log(resultsJSON);
+    return {
+	ruleResultsJSON,
+	openFacts,
+	closedFacts
+    };
 };
 
 
@@ -195,4 +221,17 @@ export const setAgenda = (rules) => {
   return agenda;
 };
 
+const tokenize = (s) => {
+  if (s === true) return s;
+  var tokens = s.split(/[^\b\w\b]|\b\d\b/g);
+  var token_map = tokens.map(function(i) {
+    var token = i.trim();
+    return token;
+  });
+  // return token_map;
+  return token_map.filter(function(e) {
+    return e.length > 0;
+  });
+};
 
+*/

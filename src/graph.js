@@ -1,13 +1,23 @@
 /* Nodes are of type 'op'{erator} or 'prop'{osition}
  */
+
 export class Graph {
     constructor( {name = ''} = {}) {
 	this._name = name;
 	this._adjList = {};
 	this._nodes = [];
 	this.missingValuesStack = [];
+	this._log = '';
     }
 
+    logging( msg ) {
+	this._log += msg;
+    }
+
+    get log() {
+	return this._log;
+    }
+    
     get name() {
 	return this._name;
     }
@@ -24,6 +34,7 @@ export class Graph {
 	args['nodeNames'] = this.nodeNames;
 	// console.log(`from createNode: this.nodeNames = ${'test' in args.nodeNames}`);
 	let n = new Node(args);
+	// console.log(`Node name: ${n.name}`);
 	this._addNode(n);
 	return n;
     }
@@ -53,7 +64,9 @@ export class Graph {
     		this._adjList[vertex1].push(vertex2);
     	}
     	else {
-    	    throw new Error("addEdge requires two names of nodes/vertices to create an edge");
+    	    throw new Error(`addEdge requires two names of nodes/vertices to create an edge: addEdge was provided with:
+				vertex1: ${vertex1}
+				vertex2: ${vertex2}`);
     	}
     }
     
@@ -133,6 +146,7 @@ export class Graph {
     evalGoalNodes( goals ) {
 	let results = {};
 	for ( let goal of goals ) {
+	    this.missingValuesStack = []; // init to empty
 	    results[goal] = this.evalRuleTree( goal );
 	}
 
@@ -188,6 +202,13 @@ export class Graph {
 	} else return false;
     }
 
+    pushToMissingValues (n) {
+	if ( !( n instanceof Node ) ) throw new Error( "usage: pushToMissingValues( <Node> )" );
+	if ( n.value === null ) {
+	    if ( !this.missingValuesStack.includes(n.name) ) this.missingValuesStack.push(n.name);
+	}
+    }
+    
     _reject( c ) {
 	// The reject procedure should return true only if the
 	// candidate or its children that could evaluate to a truth
@@ -209,13 +230,6 @@ export class Graph {
 	// a node that is either a 'not' or an RHS will have no right child
 	let rightUndefValue = operator !== 'not' && !RHS && ( right ? this._checkIfUndefined(children[1].name) : null ); 
 
-	const pushToMissingValues = (n) => {
-	    if ( !( n instanceof Node ) ) throw new Error( "usage: pushToMissingValues( <Node> )" );
-	    if ( n.value === null ) {
-		if ( !this.missingValuesStack.includes(n.name) ) this.missingValuesStack.push(n.name);
-	    }
-	};
-	
 	switch ( operator ) {
 	case 'rhs':
 	case 'not':
@@ -223,7 +237,7 @@ export class Graph {
 		( ( this.adjList[left.name].length > 0 ) ? this._reject(left.name) : true );
 
 	    if ( rootUndefValue && leftUndefValue ) { // only one operand with 'not' 
-		[ root, left ].forEach( e => pushToMissingValues(e) );
+		[ root, left ].forEach( e => this.pushToMissingValues(e) );
 		return true;
 	    }
 	    break;
@@ -235,7 +249,7 @@ export class Graph {
 		( ( this.adjList[right.name].length > 0 ) ? this._reject(right.name) : true );
 	    
 	    if ( rootUndefValue && ( leftUndefValue || rightUndefValue ) ) {
-		[ root, left, right ].forEach( e => pushToMissingValues(e) );
+		[ root, left, right ].forEach( e => this.pushToMissingValues(e) );
    		return true;
 	    }
 	    break;
@@ -247,7 +261,7 @@ export class Graph {
 		( ( this.adjList[right.name].length > 0 ) ? this._reject(right.name) : true );
 
 	    if ( rootUndefValue && ( leftUndefValue && rightUndefValue  ) ) {
-		[ root, left, right ].forEach( e => pushToMissingValues(e) );
+		[ root, left, right ].forEach( e => this.pushToMissingValues(e) );
    		return true;
 	    }
 	    break;
@@ -262,49 +276,52 @@ export class Graph {
 	 * otherwise. It may assume that the partial candidate c and
 	 * all its ancestors in the tree have passed the reject
 	 * test. */
-	const node = this.getNodeByName(c);
-	const children = this.adjList[node.name];
-	const operator = node.nodeType;
-	const value = node.value;
+	const root = this.getNodeByName(c);
+	const children = this.adjList[root.name];
+	let operator = root.nodeType;
 	const RHS = operator === 'prop' && children.length > 0;
+	// if the root is an RHS, then give it a special operator
+	operator = RHS ? 'rhs' : operator; 
 	const left = this.getNodeByName(children[0]);
 	const right = this.getNodeByName(children[1]);
 			
-	// return true if the node already has a value
-	if ( value !== null ) return true;
+	// return true if the root already has a value
+	if ( root.value !== null ) return true;
 
 	// different tests for different operators, obviously
 
-	// RHS
-	if ( RHS ) {
-	    node.value = left.value;
-	    return true;
-	}
-	
-	// NOT NODE
-	if ( operator === 'not' ) {
-	    if ( left.value === true ) {
-		node.value = false;
+	switch ( operator ) {
+	case 'rhs':
+	    if ( left.value !== null ) {
+		root.value = left.value;
+		return true;
+	    } else if ( this._accept( left.name ) ) {
+		root.value = left.value;
 		return true;
 	    }
-	    if ( left.value === false ) {
-		node.value = true;
-		return true;
-	    }
-	}
-
-	// OR NODE
-	if ( operator === 'or' ) {
-	    node.value = left.value || right.value;
+	    break;
+	case 'not':
+	    if ( left.value === null ) this._accept( left.name );
+	    root.value = left.value ? false : true;
 	    return true;
-	}
+	    break;
 
-	// AND NODE
-	if ( operator === 'and' ) {
-	    node.value = left.value && right.value;
+	case 'or':
+	    if ( left.value === null ) this._accept( left.name );
+	    if ( right.value === null ) this._accept( right.name );
+
+	    root.value = left.value || right.value;
 	    return true;
+	    break;
+
+	case 'and':
+	    if ( left.value === null ) this._accept( left.name );
+	    if ( right.value === null ) this._accept( right.name );
+
+	    root.value = left.value && right.value;
+	    return true;
+	    break;
 	}
-	
 	return false;
 
     } // end _accept
@@ -324,7 +341,7 @@ export class Node {
     set name( {name = null, nodeType = null, takenNames = [] } = {} ) {
 
 	// throw if name is already in the graph
-	if ( takenNames && takenNames.includes(name) ) throw new Error( " node name has already been used in this graph");
+	if ( takenNames && takenNames.includes(name) ) throw new DuplicateNameError( `Node name ${name} has already been used in this graph instance.`);
 	// generate a unique name if a unique name isn't provided
 	if ( name  ) this._name = name;
 	else {
@@ -391,3 +408,11 @@ const _defaultName = ( nodeType ) => {
 
     return name;
 };
+
+export class DuplicateNameError extends Error {
+    constructor( msg ) {
+	super( msg );
+	this.name = 'DuplicateNameError';
+    }
+
+}
