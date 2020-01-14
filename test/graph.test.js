@@ -365,7 +365,6 @@ describe( "evalGoalNodes - simple three rule graph", () => {
     updatedGraph.getNodeByName('f').value = true;
     const goalNodes = updatedGraph.findGoalNodes();
 
-    debugger;
     const result = updatedGraph.evalGoalNodes( goalNodes );
 
     it( "result should be accept", () => {
@@ -374,6 +373,27 @@ describe( "evalGoalNodes - simple three rule graph", () => {
 
     it( "result.e.nodes.value should be false", () => {
 	expect( result.g.nodes.value ).toEqual( false );
+    });
+
+});
+
+describe( "traverseNodesBFS", () => {
+    const graph = new Graph();
+    const ast1 = RuleBase.parseRule('b and (not f or (g and not h) ) then a');
+    let updatedGraph = RuleBase.createRuleTree( ast1, graph );
+    const ast2 = RuleBase.parseRule(' not c or e then b');
+    updatedGraph = RuleBase.createRuleTree( ast2, graph );
+
+    const path = updatedGraph.traverseNodesBFS( 'a' );
+    
+    it( "should provide the correct path to the last leaves of the tree", () => {
+	expect( path ).toEqual( ['a', 'b', 'f', 'c', 'e', 'g', 'h'] );
+    });
+    it( "should provide the correct path if provided a leaf in the tree", () => {
+	expect( updatedGraph.traverseNodesBFS( 'b' ) ).toEqual( ['b', 'c', 'e'] );
+    });
+    it( "should provide the correct path if provided a leaf in the tree", () => {
+	expect( updatedGraph.traverseNodesBFS( 'f' ) ).toEqual( ['f'] );
     });
 
 });

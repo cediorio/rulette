@@ -325,6 +325,38 @@ export class Graph {
 	return false;
 
     } // end _accept
+
+    traverseNodesBFS(c) {
+	// the path of left and right nodes all the way to the bottom
+	// of the tree, by breadth
+
+	let path = [];
+	let queue = [c];
+	const _addToPathBFS = c => {
+	    let node = this.getNodeByName(c);
+	    
+	    // if the node is a not, sub in its operand, which is the
+	    // first entry in the adjList for that node
+	    if ( node.nodeType === 'not' )
+		c = this.adjList[node.name][0];
+	    if ( this.getNodeByName(c).nodeType === 'prop' )
+		path.push(c);
+	    for ( let i of this.adjList[c] ) 
+		queue.unshift(i);
+	};
+	
+
+	while ( queue.length > 0 ) {
+	    _addToPathBFS( queue.pop(), path );
+	}
+
+	return path;
+    }
+
+    _addToPathBFS(c) {
+	path.push(c);
+	
+    }
 }
 
 export class Node {
