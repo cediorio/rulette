@@ -1,5 +1,5 @@
 import { Node, Graph } from '../src/graph';
-import { RuleBase } from '../src/ruleEngine.js';
+import { RuleBase } from '../src/rulebase';
 
 describe("Nodes", () => {
     const nodeA = new Node();
