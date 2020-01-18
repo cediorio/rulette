@@ -2,8 +2,7 @@
     "name": "rulette",
     "version": "0.1.0",
     "description": "a simple javascript rule engine",
-    "type": "module",
-    "main": "index.js",
+    "main": "./lib/main.js",
     "directories": {
 	"test": "test"
     },
@@ -11,7 +10,7 @@
 	"test": "jest",
 	"start": "nodemon --exec babel-node ./src/index.js",
 	"build": "babel src --out-dir ./lib --source-maps",
-	"debug": "nodemon --inspect-brk ./dest/index.js",
+	"debug": "nodemon --inspect-brk ./lib/index.js",
 	"debug-tests": "node --inspect-brk node_modules/.bin/jest --runInBand"
     },
     "babel": {
@@ -34,8 +33,12 @@
 	"@babel/core": "^7.7.7",
 	"@babel/node": "^7.7.7",
 	"@babel/preset-env": "^7.7.7",
+	"@rollup/plugin-commonjs": "^11.0.1",
+	"@rollup/plugin-node-resolve": "^7.0.0",
 	"axios-mock-adapter": "^1.17.0",
-	"jest": "^24.9.0"
+	"jest": "^24.9.0",
+	"rollup-plugin-babel": "^4.3.3",
+	"rollup-plugin-commonjs": "^10.1.0"
     },
     "dependencies": {
 	"babel-jest": "^24.9.0",
