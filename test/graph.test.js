@@ -123,7 +123,7 @@ describe("evalRTUtil", () => {
       graph.createNode({ name: "not", nodeType: "not" });
       graph.createNode({ name: "a" });
       graph.addEdge("not", "a");
-      debugger;
+
       let missingValuesStack = [];
       const test = graph.evalRuleTree("not", missingValuesStack);
 
