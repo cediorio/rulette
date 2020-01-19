@@ -1,4 +1,4 @@
-import { RuleBase, ParseError } from '../src/ruleEngine';
+import { RuleBase, ParseError } from '../src/rulebase';
 import { Graph } from '../src/graph';
 
 describe( "RuleBase.parseRule to AST", () => {
