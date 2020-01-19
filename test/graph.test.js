@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 import { Node, Graph } from "../src/graph";
-import { RuleBase } from "../src/ruleEngine.js";
-=======
-import { Node, Graph } from '../src/graph';
-import { RuleBase } from '../src/rulebase';
->>>>>>> eff30895cc1bc263f46e5504b8fa0ce89ade1428
+import { RuleBase } from "../src/rulebase";
 
 describe("Nodes", () => {
   const nodeA = new Node();
