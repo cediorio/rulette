@@ -384,14 +384,22 @@ describe("traverseNodesBFS", () => {
   updatedGraph = RuleBase.createRuleTree(ast2, graph);
 
   const path = updatedGraph.traverseNodesBFS("a");
+  console.log(path);
 
   it("should provide the correct path to the last leaves of the tree", () => {
-    expect(path).toEqual(["a", "b", "f", "c", "e", "g", "h"]);
+    expect(path.pathOfProps).toEqual(["a", "b", "f", "c", "e", "g", "h"]);
+    expect(path.pathOfNodes[1]).toEqual(expect.stringMatching(/^and.*/));
+    expect(path.pathOfNodes[3]).toEqual(expect.stringMatching(/^or.*/));
+    expect(path.pathOfNodes[8]).toEqual(expect.stringMatching(/^not.*/));
   });
   it("should provide the correct path if provided a leaf in the tree", () => {
-    expect(updatedGraph.traverseNodesBFS("b")).toEqual(["b", "c", "e"]);
+    expect(updatedGraph.traverseNodesBFS("b").pathOfProps).toEqual([
+      "b",
+      "c",
+      "e"
+    ]);
   });
   it("should provide the correct path if provided a leaf in the tree", () => {
-    expect(updatedGraph.traverseNodesBFS("f")).toEqual(["f"]);
+    expect(updatedGraph.traverseNodesBFS("f").pathOfProps).toEqual(["f"]);
   });
 });

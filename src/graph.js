@@ -364,27 +364,32 @@ export class Graph {
     // the path of left and right nodes all the way to the bottom
     // of the tree, by breadth
 
-    let path = [];
+    let pathOfProps = []; // this is only the props (facts and RHSs)
+    let pathOfNodes = []; // full list of all nodes in the path
     let queue = [c];
     const _addToPathBFS = c => {
       let node = this.getNodeByName(c);
-
-      // if the node is a not, sub in its operand, which is the
-      // first entry in the adjList for that node
-      if (node.nodeType === "not") c = this.adjList[node.name][0];
-      if (this.getNodeByName(c).nodeType === "prop") path.push(c);
+      // push the node name onto the pathOfNodes
+      pathOfNodes.push(c);
+      // if the node is a not, first push it onto the pathOfNodes and
+      // then sub in its operand, which is the first entry in the
+      // adjList for that node
+      if (node.nodeType === "not") {
+        pathOfNodes.push(this.adjList[node.name][0]);
+        c = this.adjList[node.name][0];
+      }
+      if (this.getNodeByName(c).nodeType === "prop") pathOfProps.push(c);
       for (let i of this.adjList[c]) queue.unshift(i);
     };
 
     while (queue.length > 0) {
-      _addToPathBFS(queue.pop(), path);
+      _addToPathBFS(queue.pop());
     }
 
-    return path;
-  }
-
-  _addToPathBFS(c) {
-    path.push(c);
+    return {
+      pathOfNodes: pathOfNodes,
+      pathOfProps: pathOfProps
+    };
   }
 }
 
