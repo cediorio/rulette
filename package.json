@@ -1,6 +1,6 @@
 {
   "name": "rulette",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "a simple javascript rule engine",
   "main": "./lib/main.js",
   "directories": {
