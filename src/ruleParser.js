@@ -1,4 +1,4 @@
-/** Define classes for RuleBase **/
+/** Define classes for RuleParser **/
 
 import { Graph, Node, DuplicateNameError } from "./graph";
 import jsep from "jsep";
@@ -10,7 +10,7 @@ export class ParseError extends Error {
   }
 }
 
-export class RuleBase {
+export class RuleParser {
   static createRuleTree(ast, graph) {
     // debugger;
     if (!graph)

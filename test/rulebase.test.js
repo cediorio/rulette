@@ -1,12 +1,11 @@
-import { RuleBase, ParseError } from '../src/rulebase';
+import { RuleParser, ParseError } from '../src/ruleParser';
 import { Graph } from '../src/graph';
 import { jest } from '@jest/globals';
 
-describe( "RuleBase.parseRule to AST", () => {
+describe( "RuleParser.parseRule to AST", () => {
   it( "should return an abstract syntax tree", () => {
     const graph = new Graph();
-    const ast = RuleBase.parseRule('a and (b or not c) then d', graph);
-    // console.log( ast.left.right );
+    const ast = RuleParser.parseRule('a and (b or not c) then d', graph);
     expect( typeof ast).toBe('object');
     expect( ast ).toEqual(
       { type: 'BinaryExpression',
@@ -31,19 +30,19 @@ describe( "RuleBase.parseRule to AST", () => {
     );
   });
 
-  describe( "RuleBase.parseRule grammars", () => {
+  describe( "RuleParser.parseRule grammars", () => {
     it( "should handle a variety of logical expressions", () => {
-      expect( RuleBase.parseRule( 'a' )).toStrictEqual(
+      expect( RuleParser.parseRule( 'a' )).toStrictEqual(
 	{"name": "a", "type": "Identifier"}
       );
-      expect( RuleBase.parseRule( 'a_test_underlined' )).toStrictEqual(
+      expect( RuleParser.parseRule( 'a_test_underlined' )).toStrictEqual(
 	{"name": "a_test_underlined", "type": "Identifier"}
       );
-      expect( RuleBase.parseRule( 'not a' )).toStrictEqual(
+      expect( RuleParser.parseRule( 'not a' )).toStrictEqual(
 	{"argument": {"name": "a", "type": "Identifier"}, "operator": "not", "prefix": true, "type": "UnaryExpression"}
       );
-      expect( () => RuleBase.parseRule( 'not alphaGetty and not and b and c )' )).toThrow(ParseError);
-      expect( RuleBase.parseRule( 'a and not ( b and c )' )).toStrictEqual(
+      expect( () => RuleParser.parseRule( 'not alphaGetty and not and b and c )' )).toThrow(ParseError);
+      expect( RuleParser.parseRule( 'a and not ( b and c )' )).toStrictEqual(
 	{
 	  "left": {
 	    "name": "a",
@@ -73,32 +72,31 @@ describe( "RuleBase.parseRule to AST", () => {
     });
   });
 
-  describe( "RuleBase.createRuleTree from a single node/Identifier", () => {
+  describe( "RuleParser.createRuleTree from a single node/Identifier", () => {
     it( "should return successfully", () => {
       const graph = new Graph();
-      const ast = RuleBase.parseRule('a_is_a_node');
-      console.log(ast);
-      expect( () => RuleBase.createRuleTree( ast, graph ) ).not.toThrow();
+      const ast = RuleParser.parseRule('a_is_a_node');
+      expect( () => RuleParser.createRuleTree( ast, graph ) ).not.toThrow();
       
     });
   });
   
-  describe( "RuleBase.createRuleTree", () => {
+  describe( "RuleParser.createRuleTree", () => {
     it( "should throw a ParseError", () => {
       const graph = new Graph();
-      const ast = RuleBase.parseRule('a and (b or not c) then d');
+      const ast = RuleParser.parseRule('a and (b or not c) then d');
 
-      expect( () => RuleBase.createRuleTree( ast ) ).toThrow(ParseError);
+      expect( () => RuleParser.createRuleTree( ast ) ).toThrow(ParseError);
       expect( () => {
-	RuleBase.createRuleTree( ast, graph );
+	RuleParser.createRuleTree( ast, graph );
       }).not.toThrow();
     });
   });
 
-  describe( "RuleBase.createRuleTree", () => {
+  describe( "RuleParser.createRuleTree", () => {
     const graph = new Graph();
-    const ast = RuleBase.parseRule('a and (b or not c) then d');
-    const updatedGraph = RuleBase.createRuleTree( ast, graph );
+    const ast = RuleParser.parseRule('a and (b or not c) then d');
+    const updatedGraph = RuleParser.createRuleTree( ast, graph );
     const adjList = updatedGraph.adjList;
     
     it( "should return a Graph object with the rule parsed into new nodes with appropriate edges", () => {
@@ -119,12 +117,12 @@ describe( "RuleBase.parseRule to AST", () => {
 
   });
 
-  describe( "RuleBase.createRuleTree with intra-rule references", () => {
+  describe( "RuleParser.createRuleTree with intra-rule references", () => {
     const graph = new Graph();
-    const ast1 = RuleBase.parseRule('a and b then c');
-    const ast2 = RuleBase.parseRule('c then d');
-    RuleBase.createRuleTree( ast1, graph );
-    const updatedGraph = RuleBase.createRuleTree( ast2, graph );
+    const ast1 = RuleParser.parseRule('a and b then c');
+    const ast2 = RuleParser.parseRule('c then d');
+    RuleParser.createRuleTree( ast1, graph );
+    const updatedGraph = RuleParser.createRuleTree( ast2, graph );
     const adjList = updatedGraph.adjList;
     
     it( "node d should have an edge to c", () => {
@@ -132,18 +130,4 @@ describe( "RuleBase.parseRule to AST", () => {
     });
   });
 });
-
-describe( "RuleBase.findGoalNodes", () => {
-  const graph = new Graph();
-  const ast = RuleBase.parseRule('a and (b or not c) then d');
-  const updatedGraph = RuleBase.createRuleTree( ast, graph );
-  const adjList = updatedGraph.adjList;
-  const goalNodes = updatedGraph.findGoalNodes();
-  
-  it( "should find the goal node of 'd' in the rule tree", () => {
-    expect( goalNodes ).toEqual( ['d'] );
-  });
-
-});
-
 

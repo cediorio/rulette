@@ -1585,7 +1585,7 @@ var ternary = {
 
 jsep.plugins.register(ternary);
 
-/** Define classes for RuleBase **/
+/** Define classes for RuleParser **/
 class ParseError extends Error {
   constructor(message) {
     super(message);
@@ -1593,7 +1593,7 @@ class ParseError extends Error {
   }
 
 }
-class RuleBase {
+class RuleParser {
   static createRuleTree(ast, graph) {
     // debugger;
     if (!graph) throw new ParseError("createRuleTree requires a graph object as its second parameter.");
@@ -1773,7 +1773,7 @@ var index = {
   Graph,
   Node,
   DuplicateNameError,
-  RuleBase
+  RuleParser
 };
 
 export default index;

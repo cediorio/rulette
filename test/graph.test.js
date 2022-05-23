@@ -1,5 +1,5 @@
 import { Node, Graph } from "../src/graph";
-import { RuleBase } from "../src/rulebase";
+import { RuleParser } from "../src/ruleParser";
 import { jest } from '@jest/globals';
 
 describe("Nodes", () => {
@@ -317,8 +317,8 @@ describe("evalRuleTree (backtracking algorithm)", () => {
 
 describe("evalGoalNodes - simple one rule if-then", () => {
   const graph = new Graph();
-  const ast = RuleBase.parseRule("d then e");
-  const updatedGraph = RuleBase.createRuleTree(ast, graph);
+  const ast = RuleParser.parseRule("d then e");
+  const updatedGraph = RuleParser.createRuleTree(ast, graph);
   const adjList = updatedGraph.adjList;
   updatedGraph.getNodeByName("d").value = true;
   const goalNodes = updatedGraph.findGoalNodes();
@@ -336,8 +336,8 @@ describe("evalGoalNodes - simple one rule if-then", () => {
 
 describe("evalGoalNodes - simple one rule with not LHS", () => {
   const graph = new Graph();
-  const ast = RuleBase.parseRule("not d then e");
-  const updatedGraph = RuleBase.createRuleTree(ast, graph);
+  const ast = RuleParser.parseRule("not d then e");
+  const updatedGraph = RuleParser.createRuleTree(ast, graph);
   const adjList = updatedGraph.adjList;
   updatedGraph.getNodeByName("d").value = false;
   const goalNodes = updatedGraph.findGoalNodes();
@@ -354,12 +354,12 @@ describe("evalGoalNodes - simple one rule with not LHS", () => {
 
 describe("evalGoalNodes - simple three rule graph", () => {
   const graph = new Graph();
-  const ast1 = RuleBase.parseRule("a and (b or not c) then d");
-  RuleBase.createRuleTree(ast1, graph);
-  const ast2 = RuleBase.parseRule("d then e");
-  let updatedGraph = RuleBase.createRuleTree(ast2, graph);
-  const ast3 = RuleBase.parseRule("e and f then g");
-  updatedGraph = RuleBase.createRuleTree(ast3, graph);
+  const ast1 = RuleParser.parseRule("a and (b or not c) then d");
+  RuleParser.createRuleTree(ast1, graph);
+  const ast2 = RuleParser.parseRule("d then e");
+  let updatedGraph = RuleParser.createRuleTree(ast2, graph);
+  const ast3 = RuleParser.parseRule("e and f then g");
+  updatedGraph = RuleParser.createRuleTree(ast3, graph);
   const adjList = updatedGraph.adjList;
   updatedGraph.getNodeByName("a").value = false;
   updatedGraph.getNodeByName("b").value = true;
@@ -379,10 +379,10 @@ describe("evalGoalNodes - simple three rule graph", () => {
 
 describe("traverseNodesBFS", () => {
   const graph = new Graph();
-  const ast1 = RuleBase.parseRule("b and (not f or (g and not h) ) then a");
-  let updatedGraph = RuleBase.createRuleTree(ast1, graph);
-  const ast2 = RuleBase.parseRule(" not c or e then b");
-  updatedGraph = RuleBase.createRuleTree(ast2, graph);
+  const ast1 = RuleParser.parseRule("b and (not f or (g and not h) ) then a");
+  let updatedGraph = RuleParser.createRuleTree(ast1, graph);
+  const ast2 = RuleParser.parseRule(" not c or e then b");
+  updatedGraph = RuleParser.createRuleTree(ast2, graph);
 
   const path = updatedGraph.traverseNodesBFS("a");
   console.log(path);
@@ -403,4 +403,44 @@ describe("traverseNodesBFS", () => {
   it("should provide the correct path if provided a leaf in the tree", () => {
     expect(updatedGraph.traverseNodesBFS("f").pathOfProps).toEqual(["f"]);
   });
+});
+
+
+describe( "RuleParser.findGoalNodes", () => {
+  const graph = new Graph();
+  const ast = RuleParser.parseRule('a and (b or not c) then d');
+  const updatedGraph = RuleParser.createRuleTree( ast, graph );
+  const adjList = updatedGraph.adjList;
+  const goalNodes = updatedGraph.findGoalNodes();
+  
+  it( "should find the goal node of 'd' in the rule tree", () => {
+    expect( goalNodes ).toEqual( ['d'] );
+  });
+
+});
+
+
+describe( "RuleParse.evalGoalNodes test multiple rules", () => {
+  const graph = new Graph();
+  const ast1 = RuleParser.parseRule('a and b then c');
+  const ast2 = RuleParser.parseRule('c or d then e');
+  RuleParser.createRuleTree( ast1, graph);
+  RuleParser.createRuleTree( ast2, graph);
+  const goalNodes = graph.findGoalNodes();
+  let result = graph.evalGoalNodes(goalNodes);
+  it( "should be rejected because the facts are null", () => {
+    expect( result.e.result ).toBe('reject');
+  });
+  let a = graph.getNodeByName('a');
+  a.value = true;
+  let result2 = graph.evalGoalNodes(goalNodes);
+  it( "should still be rejected because only 'a' is true", () => {
+    expect( result2.e.result ).toBe('reject');
+  });
+  let b = graph.getNodeByName('b');
+  b.value = true;
+  let result3 = graph.evalGoalNodes(goalNodes);
+  it( "should now be accepted because 'a' and 'b' are true", () => {
+    expect( result3.e.result ).toBe('accept');
+  });  
 });

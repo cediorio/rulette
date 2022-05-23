@@ -1,9 +1,9 @@
 import { Graph, Node, DuplicateNameError } from "./graph";
-import { RuleBase } from "./rulebase";
+import { RuleParser } from "./ruleParser";
 
 export default {
   Graph,
   Node,
   DuplicateNameError,
-  RuleBase
+  RuleParser
 };
