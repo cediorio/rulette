@@ -4,11 +4,11 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 
 export default {
-    input: 'src/main.js',
+    input: 'src/index.js',
     output: {
-	file: 'lib/main.js',
-	format: 'umd',
-	name: 'rulette'
+      dir: 'build',
+      format: 'esm',
+      name: 'rulette'
     },
     plugins: [
 	commonjs(),

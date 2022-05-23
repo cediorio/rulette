@@ -1,5 +1,6 @@
 import { RuleBase, ParseError } from '../src/rulebase';
 import { Graph } from '../src/graph';
+import { jest } from '@jest/globals';
 
 describe( "RuleBase.parseRule to AST", () => {
   it( "should return an abstract syntax tree", () => {

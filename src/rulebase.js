@@ -3,7 +3,7 @@
 import { Graph, Node, DuplicateNameError } from "./graph";
 import jsep from "jsep";
 
-class ParseError extends Error {
+export class ParseError extends Error {
   constructor(message) {
     super(message);
     this.name = "ParseError";
@@ -14,7 +14,7 @@ export class RuleBase {
   static createRuleTree(ast, graph) {
     // debugger;
     if (!graph)
-      throw new Error(
+      throw new ParseError(
         "createRuleTree requires a graph object as its second parameter."
       );
     let parent = null;

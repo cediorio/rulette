@@ -1,5 +1,6 @@
 import { Node, Graph } from "../src/graph";
 import { RuleBase } from "../src/rulebase";
+import { jest } from '@jest/globals';
 
 describe("Nodes", () => {
   const nodeA = new Node();
