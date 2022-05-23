@@ -4,7 +4,7 @@ Rulette is a simple javascript expert system. It is backward-chaining (for now) 
 Note that this library is currently very much in development, but does have fairly decent test coverage.
 
 # Usage
-
+To build an expert system, rules and facts are fed to an instance of the RuleEngine
 ...
 
 # TO DOs
