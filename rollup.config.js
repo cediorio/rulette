@@ -6,7 +6,7 @@ import commonjs from '@rollup/plugin-commonjs';
 export default {
     input: 'src/index.js',
     output: {
-      dir: 'build',
+      dir: 'dist',
       format: 'esm',
       name: 'rulette'
     },

@@ -1612,6 +1612,14 @@ class RuleBase {
       return node && node.type === "Identifier" ? true : false;
     };
 
+    var processVariable = () => {
+      var root = graph.createNode({
+        name: ast.name,
+        nodeType: "prop"
+      });
+      graph.addEdge(parent, root.name);
+    };
+
     var processBinary = () => {
       var left = ast.left;
       var right = ast.right; // process the operator itself (the root of this iteration)
@@ -1736,6 +1744,9 @@ class RuleBase {
           default:
             throw new ParseError("_parseASTNode could not parse the UnaryExpression that had a ".concat(ast.operator, " operator"));
         }
+
+      case "Identifier":
+        return processVariable();
 
       default:
         throw new ParseError("_parseASTNode could not parse the ast.type - parameters passed in were:\n\t\t\t\t\tast.type:\t".concat(ast.type, "\n\t\t\t\t\tast.operator:\t").concat(ast.operator));
