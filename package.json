@@ -12,7 +12,7 @@
     "jest": "NODE_OPTIONS='--experimental-vm-modules' jest",
     "start": "nodemon --exec babel-node ./src/index.js",
     "build": "rollup -c",
-    "debug": "nodemon --inspect-brk ./lib/index.js",
+    "debug": "nodemon --inspect-brk ./src/index.js",
     "debug-tests": "node --inspect-brk node_modules/.bin/jest --runInBand"
   },
   "babel": {

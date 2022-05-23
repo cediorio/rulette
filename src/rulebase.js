@@ -29,6 +29,12 @@ export class RuleBase {
     const testIdentifier = node => {
       return node && node.type === "Identifier" ? true : false;
     };
+
+    const processVariable = () => {
+      const root = graph.createNode({name: ast.name, nodeType: "prop"});
+      graph.addEdge(parent, root.name);
+    };
+    
     const processBinary = () => {
       const left = ast.left;
       const right = ast.right;
@@ -156,9 +162,11 @@ export class RuleBase {
               `_parseASTNode could not parse the UnaryExpression that had a ${ast.operator} operator`
             );
         }
-        break;
-      default:
-        throw new ParseError(`_parseASTNode could not parse the ast.type - parameters passed in were:
+      break;
+    case "Identifier":
+      return processVariable();
+    default:
+      throw new ParseError(`_parseASTNode could not parse the ast.type - parameters passed in were:
 					ast.type:	${ast.type}
 					ast.operator:	${ast.operator}`);
     }

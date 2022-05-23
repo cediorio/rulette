@@ -36,6 +36,9 @@ describe( "RuleBase.parseRule to AST", () => {
       expect( RuleBase.parseRule( 'a' )).toStrictEqual(
 	{"name": "a", "type": "Identifier"}
       );
+      expect( RuleBase.parseRule( 'a_test_underlined' )).toStrictEqual(
+	{"name": "a_test_underlined", "type": "Identifier"}
+      );
       expect( RuleBase.parseRule( 'not a' )).toStrictEqual(
 	{"argument": {"name": "a", "type": "Identifier"}, "operator": "not", "prefix": true, "type": "UnaryExpression"}
       );
@@ -67,6 +70,16 @@ describe( "RuleBase.parseRule to AST", () => {
 	  "type": "BinaryExpression"
 	}
       );
+    });
+  });
+
+  describe( "RuleBase.createRuleTree from a single node/Identifier", () => {
+    it( "should return successfully", () => {
+      const graph = new Graph();
+      const ast = RuleBase.parseRule('a_is_a_node');
+      console.log(ast);
+      expect( () => RuleBase.createRuleTree( ast, graph ) ).not.toThrow();
+      
     });
   });
   
