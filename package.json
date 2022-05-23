@@ -1,6 +1,6 @@
 {
   "name": "rulette",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "a simple javascript rule engine",
   "type": "module",
   "exports": "./src/index.js",
@@ -21,7 +21,7 @@
         "@babel/preset-env",
         {
           "targets": {
-	    "esmodules": true
+            "esmodules": true
           }
         }
       ]
