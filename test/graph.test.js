@@ -385,7 +385,6 @@ describe("traverseNodesBFS", () => {
   updatedGraph = RuleParser.createRuleTree(ast2, graph);
 
   const path = updatedGraph.traverseNodesBFS("a");
-  console.log(path);
 
   it("should provide the correct path to the last leaves of the tree", () => {
     expect(path.pathOfProps).toEqual(["a", "b", "f", "c", "e", "g", "h"]);
@@ -444,3 +443,4 @@ describe( "RuleParse.evalGoalNodes test multiple rules", () => {
     expect( result3.e.result ).toBe('accept');
   });  
 });
+

@@ -1,5 +1,5 @@
-import { RuleParser, ParseError } from '../src/ruleParser';
-import { Graph } from '../src/graph';
+import { RuleParser, ParseError } from '../src/ruleParser.js';
+import { Graph } from '../src/graph.js';
 import { jest } from '@jest/globals';
 
 describe( "RuleParser.parseRule to AST", () => {
@@ -80,6 +80,7 @@ describe( "RuleParser.parseRule to AST", () => {
       
     });
   });
+
   
   describe( "RuleParser.createRuleTree", () => {
     it( "should throw a ParseError", () => {

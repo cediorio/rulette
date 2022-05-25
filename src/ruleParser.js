@@ -1,7 +1,10 @@
 /** Define classes for RuleParser **/
 
-import { Graph, Node, DuplicateNameError } from "./graph";
+import { Graph, Node, DuplicateNameError } from "./graph.js";
 import jsep from "jsep";
+import jsepAssignment from '@jsep-plugin/assignment';
+jsep.plugins.register(jsepAssignment);
+
 
 export class ParseError extends Error {
   constructor(message) {
@@ -78,7 +81,7 @@ export class RuleParser {
 
       return root;
     };
-
+    
     const processNotOperator = () => {
       const notNode = graph.createNode({ nodeType: "not" });
       graph.addEdge(parent, notNode.name);
@@ -100,71 +103,72 @@ export class RuleParser {
     };
 
     switch (ast.type) {
-      case "BinaryExpression":
-        switch (ast.operator) {
-          case "then":
-            let rhs;
-            let lhs;
-            if (ast.right && ast.right.type === "Identifier") {
-              try {
-                rhs = graph.createNode({
-                  name: ast.right.name,
-                  nodeType: "prop"
-                });
-              } catch (e) {
-                if (e instanceof DuplicateNameError) {
-                  graph.logging(e.message);
-                  rhs = graph.getNodeByName(ast.right.name);
-                } else {
-                  throw e;
-                }
-              }
-              // if the left side is just an 'Identifier' (i.e., no further logic)
-              // then we don't need further parsing
-              if (ast.left.type !== "Identifier")
-                lhs = this._parseASTNode(ast.left, graph, rhs.name);
-              else {
-                // we do have a Node whose type is 'Identifier'
-                lhs = graph.getNodeByName(ast.left.name);
-                // if the previous call didn't find the node in the graph
-                // then create it
-                if (typeof lhs === "undefined")
-                  lhs = graph.createNode({
-                    name: ast.left.name,
-                    nodeType: "prop"
-                  });
-                // and finally add it to adjacency list
-                graph.addEdge(rhs.name, lhs.name);
-              }
-            } else
-              throw new Error(
-                `There was a problem with the form of the AST provided: the RHS was not of type 'Identifier'`
-              );
-            break;
-          case "and":
-          case "or":
-            return processBinary();
-            break;
-          default:
-            throw new ParseError(`_parseASTNode could not parse the BinaryExpression with the following properties:
+    case "BinaryExpression":
+      switch (ast.operator) {
+      case "then":
+        let rhs;
+        let lhs;
+        if (ast.right && ast.right.type === "Identifier") {
+          try {
+            rhs = graph.createNode({
+              name: ast.right.name,
+              nodeType: "prop"
+            });
+          } catch (e) {
+            if (e instanceof DuplicateNameError) {
+              graph.logging(e.message);
+              rhs = graph.getNodeByName(ast.right.name);
+            } else {
+              throw e;
+            }
+          }
+          // if the left side is just an 'Identifier' (i.e., no further logic)
+          // then we don't need further parsing
+          if (ast.left.type !== "Identifier")
+            lhs = this._parseASTNode(ast.left, graph, rhs.name);
+          else {
+            // we do have a Node whose type is 'Identifier'
+            lhs = graph.getNodeByName(ast.left.name);
+            // if the previous call didn't find the node in the graph
+            // then create it
+            if (typeof lhs === "undefined")
+              lhs = graph.createNode({
+                name: ast.left.name,
+                nodeType: "prop"
+              });
+            // and finally add it to adjacency list
+            graph.addEdge(rhs.name, lhs.name);
+          }
+        } else
+          throw new Error(
+            `There was a problem with the form of the AST provided: the RHS was not of type 'Identifier'`
+          );
+        break;
+      case "and":
+      case "or":
+        return processBinary();
+        break;
+      default:
+        throw new ParseError(`_parseASTNode could not parse the BinaryExpression with the following properties:
 					operator: ${ast.operator}
 					
 				`);
-        }
+      }
+      break;
+    case "UnaryExpression":
+      switch (ast.operator) {
+      case "not":
+        return processNotOperator();
         break;
-      case "UnaryExpression":
-        switch (ast.operator) {
-          case "not":
-            return processNotOperator();
-            break;
-          default:
-            throw new ParseError(
-              `_parseASTNode could not parse the UnaryExpression that had a ${ast.operator} operator`
-            );
-        }
+      default:
+        throw new ParseError(
+          `_parseASTNode could not parse the UnaryExpression that had a ${ast.operator} operator`
+        );
+      }
       break;
     case "Identifier":
       return processVariable();
+      
     default:
       throw new ParseError(`_parseASTNode could not parse the ast.type - parameters passed in were:
 					ast.type:	${ast.type}

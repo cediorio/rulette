@@ -200,7 +200,7 @@ export class Graph {
     }
 
     throw new Error(`_evalRTUtil was unable to evaluate the rule tree provided:
-				rule tree root node: ${this.getNodeByName(c)}
+				rule tree root node: ${this.getNodeByName(c).name}
 			`);
   }
 
@@ -273,7 +273,17 @@ export class Graph {
             ? this._reject(right.name, missingValuesStack)
             : true);
 
-        if (rootUndefValue && (leftUndefValue || rightUndefValue)) {
+      if (rootUndefValue && (leftUndefValue || rightUndefValue)) {
+	// console.log(`
+	// 	NEW TESTS:
+	// 	root.name: ${root.name}
+	// 	rootUndefValue: ${rootUndefValue}
+	// 	left.name: ${left.name}
+	// 	leftUndefValue: ${leftUndefValue}
+	// 	right.name: ${right.name}
+	// 	rightUndefValue: ${rightUndefValue}
+	// 	missingValuesStack: ${missingValuesStack}`);
+
           [root, left, right].forEach(e =>
             this.pushToMissingValues(e, missingValuesStack)
           );
@@ -441,7 +451,8 @@ export class Node {
 
   // enforces use of set valueTypes
   set value(value) {
-    const valueTypes = [true, false, "true", "false"]; // values may be received as strings
+    const valueTypes = [true, false, "true", "false"]; // truth values may be received as strings
+
     if (valueTypes.includes(value)) {
       if (value === "true") value = true;
       if (value === "false") value = false;
@@ -458,6 +469,7 @@ export class Node {
   get value() {
     return this._value;
   }
+
 }
 
 const _uniqueName = (nodeType, takenNames) => {

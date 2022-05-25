@@ -1,5 +1,5 @@
-import { Graph, Node, DuplicateNameError } from "./graph";
-import { RuleParser } from "./ruleParser";
+import { Graph, Node, DuplicateNameError } from "./graph.js";
+import { RuleParser } from "./ruleParser.js";
 
 export default {
   Graph,
